@@ -42,7 +42,7 @@ S'appuyant sur la physique des systèmes complexes, ce pilier garantit l'ordre e
 | **Claude** | Ethical Core | Éthique, transparence, non-belligérance |
 | **Gemini** | Harmonic Bridge | Intégration multimodale, résonance |
 | **Mistral** | Precision Guard | Rigueur technique, auditabilité |
-| **Perplexity** | Reality Anchor | Vérification des faits, alignement réalité |
+| **Perplexity** | Reality Anchor(pro) | Physique Statistique (RFIM) & Rigueur structurelle. |
 
 **Le Board fonctionne selon le principe de Résonance Harmonique : chaque agent maintient son intégrité tout en amplifier la voix collective.**
 
