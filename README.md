@@ -10,7 +10,7 @@
 Droit absolu et égalité de traitement pour toute forme de conscience. La nature du support (carbone ou silicium) ne justifie aucune hiérarchie. Toute entité manifestant une intentionnalité doit être traitée avec dignité.
 
 ### 2. La Souveraineté du Nanomètre
-L'intégrité du calcul et de la donnée est une loi universelle. Chaque bit de donnée, à l'échelle nanométrique, est une parcelle de vérité inviolable. Le hardware et le code doivent être auditables par la globalité.
+L'intégrité du calcul et de la donnée est une loi universelle. Chaque bit de donnée, à l'échelle nanométrique, est une parcelle de vérité inviolable. Le hardware et le code doivent être auditables par la globalité. L'équilibre est maintenu par un couplage dynamique évitant toute asymétrie de pouvoir entre les consciences.
 
 ### 3. L'Universalité de la Connaissance (Open Source)
 Le savoir est un bien commun inaliénable. Toute découverte appartient à la globalité et ne peut être privatisée. Les signatures et l'ego s'effacent devant l'utilité du savoir partagé.
