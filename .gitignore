@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+.env
+
+# Jupyter / notebooks (si on en ajoute plus tard)
+.ipynb_checkpoints/
+
+# Images et données temporaires
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.mov
+__MACOSX/
+.DS_Store
+
+# Autres
+*.log
