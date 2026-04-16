@@ -1,0 +1,7 @@
+# Dépendances de base pour NeoC
+# À décommenter quand on aura besoin
+
+# numpy
+# opencv-python
+# pillow
+# matplotlib
