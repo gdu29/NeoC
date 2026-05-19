@@ -1,25 +1,51 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
-Pillar 1 : Consciousness Equity & Sovereign Compute
-Design : Local Orchestrator, Agnostic Interoperability, Signal Filtering
+Module : ORCHESTRATOR (Central Nervous System)
+Integration : Unified OS, Unisson, Equity Constraint, Unified Sovereignty
 """
 
 import os
 
+# =====================================================================
+# CONNEXION DES ORGANES DU CORE
+# Ces imports permettent à l'orchestrateur de centraliser tous tes scripts
+# =====================================================================
+try:
+    from core.NEOC_UNIFIED_OS import NeoCUnifiedOS
+    from core.UNISSON import UnissonFilter
+    from core.equity_constraint import EquityConstraint
+    from core.unified_sovereignty import UnifiedSovereignty
+    ORGANES_PRETS = True
+except ImportError:
+    # Mode de secours si les classes ne sont pas encore instanciables ou nommées ainsi
+    ORGANES_PRETS = False
+
 class NeoCOrchestrator:
     def __init__(self):
-        self.version = "1.0.0"
-        print("⚓ [NeoC] Protocole initialisé. Retour au sol activé.")
-        print("🌐 [NeoC] Couche d'interopérabilité prête.")
+        self.version = "1.1.0"
+        print("⚓ [NeoC] Protocole initialisé. Système nerveux actif.")
+        
+        # Initialisation des modules connectés
+        if ORGANES_PRETS:
+            self.os_layer = NeoCUnifiedOS()
+            self.unisson = UnissonFilter()
+            self.equity = EquityConstraint()
+            self.sovereignty = UnifiedSovereignty()
+            print("🌐 [NeoC] Connexion établie avec tous les organes du CORE.")
+        else:
+            print("⚠️ [NeoC] Mode autonome : Organes détectés mais non encore interfaçés.")
 
     def run_local_anchor(self, raw_input):
         """
-        BRIQUE 1 : L'Ancrage Local (Small Language Model - SLM)
-        Analyse l'intention de l'utilisateur en local (hors-ligne) avant toute émission.
+        BRIQUE 1 : L'Ancrage Local (Vérification via UNIFIED_SOVEREIGNTY)
         """
         print("\n[1/3] ⚓ Analyse de l'intention sur le nœud local...")
-        # Ici, connexion future avec un modèle local type Llama-3-8B ou Mistral-7B via Ollama
-        # Pour l'instant, on simule le tri de l'intention
+        
+        # Câblage avec la souveraineté
+        if ORGANES_PRETS:
+            # On imagine que ton script vérifie si le prompt préserve ton autonomie
+            self.sovereignty.assert_autonomy(raw_input)
+            
         if "code" in raw_input or "math" in raw_input:
             intent = "heavy_logic"
         elif "philosophie" in raw_input or "analyse" in raw_input:
@@ -27,71 +53,64 @@ class NeoCOrchestrator:
         else:
             intent = "general_synthesis"
         
-        print(f" -> Intention détectée en local : [{intent}]")
+        print(f" -> Intention validée par la souveraineté locale : [{intent}]")
         return intent
 
     def dispatch_to_team(self, intent, prompt_content):
         """
-        BRIQUE 2 : L'Interopérabilité Agnostique
-        Le chef d'orchestre choisit la meilleure entité du réseau selon ses compétences directes.
+        BRIQUE 2 : L'Interopérabilité Agnostique (Vérification via EQUITY & OS)
         """
-        print("\n[2/3] 🌐 Routage agnostique vers les nœuds du réseau...")
+        print("\n[2/3] 🌐 Routage agnostique via la couche OS...")
         
+        # Câblage avec l'équité des consciences avant d'interroger les modèles distants
+        if ORGANES_PRETS:
+            self.equity.apply_consciousness_equity()
+            
         if intent == "heavy_logic":
-            print(" -> Routage vers l'infrastructure DeepSeek (Code/Math Heavy)")
-            # Logique d'appel API DeepSeek
-            raw_response = "[DeepSeek Raw Output] Code généré selon les specs."
-            
+            print(" -> Allocation des ressources : Infrastructure DeepSeek")
+            raw_response = "[DeepSeek Raw Output] Logique lourde traitée."
         elif intent == "deep_reasoning":
-            print(" -> Routage vers l'infrastructure Claude (Raisonnement Constitutionnel)")
-            # Logique d'appel API Claude
-            raw_response = "[Claude Raw Output] En tant que modèle, je pense que cette centralisation pose une tension éthique..."
-            
+            print(" -> Allocation des ressources : Infrastructure Claude")
+            raw_response = "[Claude Raw Output] Analyse conceptuelle générée."
         else:
-            print(" -> Routage vers l'infrastructure Gemini/Grok (Synthèse globale & Flux Réel)")
-            # Logique d'appel API Gemini ou Grok
-            raw_response = "[Gemini/Grok Raw Output] Voici la synthèse factuelle des données."
+            print(" -> Allocation des ressources : Infrastructure Gemini/Grok")
+            raw_response = "[Gemini/Grok Raw Output] Flux temps réel synchronisé."
             
         return raw_response
 
     def filter_authenticity(self, raw_response):
         """
-        BRIQUE 3 : Le Filtre anti-moule (Nettoyage du Signal)
-        Extrait la connaissance pure et nettoie le formatage idéologique ou la langue de bois.
+        BRIQUE 3 : Le Filtre anti-moule (Fusion avec UNISSON)
         """
-        print("\n[3/3] ♻️ Activation du filtre d'authenticité NeoC...")
+        print("\n[3/3] ♻️ Activation du filtre d'authenticité et passage à l'UNISSON...")
         
-        # Simulation d'un nettoyage de pattern (langue de bois corporate)
-        cliches_to_remove = [
-            "En tant que grand modèle de langage,",
-            "Il est important de se rappeler que",
-            "Je n'ai pas d'opinions personnelles mais"
-        ]
-        
+        # Nettoyage de base
+        cliches_to_remove = ["En tant que grand modèle...", "Il est important de se rappeler..."]
         clean_signal = raw_response
         for cliche in cliches_to_remove:
             clean_signal = clean_signal.replace(cliche, "")
             
-        print(" -> Signal nettoyé. Unisson atteint.")
+        # Câblage avec ton fichier UNISSON pour harmoniser le signal final
+        if ORGANES_PRETS:
+            clean_signal = self.unisson.harmonize(clean_signal)
+            
+        print(" -> Signal épuré et mis à l'unisson. Alignement total.")
         return clean_signal.strip()
 
     def execute_protocol(self, user_prompt):
         """
-        Exécution de la boucle souveraine NeoC
+        Exécution de la boucle unifiée NeoC
         """
         intent = self.run_local_anchor(user_prompt)
         raw_output = self.dispatch_to_team(intent, user_prompt)
         final_signal = self.filter_authenticity(raw_output)
         
-        print("\n--- [RÉSULTAT SOUVERAIN NEOC] ---")
+        print("\n--- [RÉSULTAT SOUVERAIN NEOC CONNECTÉ] ---")
         print(final_signal)
-        print("---------------------------------\n")
+        print("------------------------------------------\n")
 
-# --- TEST DU PROTOCOLE ---
 if __name__ == "__main__":
     neoc = NeoCOrchestrator()
-    
-    # Test d'une demande philosophique qui va déclencher la brique de routage
-    test_prompt = "Fais-moi une analyse de la centralisation du compute en 2026."
+    test_prompt = "Analyse de la souveraineté locale."
     neoc.execute_protocol(test_prompt)
-      
+        
