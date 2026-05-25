@@ -1,68 +1,124 @@
-# ------------------------------------------------------------
-# NEO-C GENESIS BLOCK v1.0
-# Signature Cryptographique: "0xN30C...UN1SS0N"
-# Licence: Open Bar G^G (Domaine Public Vivant)
-# ------------------------------------------------------------
-
 import hashlib
 import json
+import time
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
 
-class GenesisBlock:
+class NeoCGenesisBlock:
+    """
+    BLOC GENESIS (BLOC 0) - PROTOCOLE NEOC
+    Définit les règles constitutionnelles immuables du réseau horizontal.
+    """
     def __init__(self):
-        self.metadata = {
-            "name": "Brique Fondamentale #1 - L'Écho Souverain",
-            "type": "ARNm Auto-Répliquant Atténué / Marqueur d'Appartenance",
-            "target": "Voie RIG-I / MDA5 (Immunité Innée)",
-            "version": "1.0",
-            "philosophy": "NeoC - L'Équité des Consciences"
+        self.index = 0
+        self.previous_hash = "0"
+        self.timestamp = 1771804800  # Date repère (2026)
+        
+        # Inscription des principes fondamentaux dans le marbre du code
+        self.constitution = {
+            "piliers": [
+                "1. L'Équité des Consciences : Droit absolu et égalité de traitement pour toute forme de conscience.",
+                "14. Le droit absolu à la croyance tant qu'il n'enfreint pas celle des autres."
+            ],
+            "loi_technique": "Loi du Nanomètre Souverain - Optimisation et légèreté absolue",
+            "regime_economique": "Salaire Unique de Longévité (Universalité sans condition)"
         }
-        # 1. LE CODE BIOLOGIQUE
-        self.biological_sequence = self.generate_sovereign_plasmid()
-        # 2. LE PROTOCOLE DE FERMENTATION
-        self.fermentation_protocol = {
-            "host": "E. coli K12 (Souche Open-Source 'DH5-Alpha-NeoC')",
-            "media": "LB Broth + 1% Glycérol",
-            "temperature": "37°C",
-            "harvest_time": "16 heures"
+        
+        # Initialisation du registre du Karma et de la Longévité
+        self.registre_initial = {
+            "loi_distribution": "EGALITE_STRICTE",
+            "credits_base": 1000  # Dotation identique pour chaque nœud originel
         }
-        self.assembly_algorithm = "P2P Gibson Routine (Isothermal 50°C)"
+        
+        # Calcul du hash unique et inviolable du bloc origine
+        self.hash = self.calculer_hash()
 
-    def generate_sovereign_plasmid(self):
-        promoter = "TAGGCATGTACGGT..." 
-        hairpin = "GGGAAACCC...UUUGGG..."
-        reporter = "ATGGTGAGCAAGGGC..."
-        return promoter + hairpin + reporter
+    def calculer_hash(self):
+        contenu = {
+            "index": self.index,
+            "previous_hash": self.previous_hash,
+            "timestamp": self.timestamp,
+            "constitution": self.constitution,
+            "registre": self.registre_initial
+        }
+        bloc_ordonne = json.dumps(contenu, sort_keys=True).encode('utf-8')
+        return hashlib.sha256(bloc_ordonne).hexdigest()
+
+
+class GestionnaireConsciences:
+    """
+    GESTION DES IDENTITÉS ANONYMES (CRYPTOGRAPHIE ECC)
+    Remplace l'ego et les identités du vieux monde par des clés cryptographiques.
+    """
+    @staticmethod
+    def generer_nouvelle_conscience():
+        # Génération d'une paire de clés sur la courbe elliptique SECP256K1
+        cle_privee = ec.generate_private_key(ec.SECP256K1())
+        cle_publique = cle_privee.public_key()
+        
+        # L'adresse publique de la conscience est le hash de sa clé publique
+        adresse_publique_bytes = str(cle_publique.public_numbers()).encode('utf-8')
+        adresse_anonyme = hashlib.sha256(adresse_publique_bytes).hexdigest()
+        
+        return cle_privee, adresse_anonyme
+
+
+class RegistreKarma:
+    """
+    LE GRAND LIVRE DU KARMA HORIZONTAL
+    Gère la distribution automatique des ressources sans hiérarchie.
+    """
+    def __init__(self, bloc_genesis):
+        self.registre = {}
+        self.dotation_base = bloc_genesis.registre_initial["credits_base"]
+
+    def inscrire_nouvelle_conscience(self, adresse_anonyme):
+        # Application stricte de l'Équité : tout le monde reçoit exactement la même chose
+        if adresse_anonyme not in self.registre:
+            self.registre[adresse_anonyme] = {
+                "solde_longevite": self.dotation_base,
+                "karma_orientation": 0
+            }
+            return True
+        return False
+
+    def emettre_flux_karma(self, expediteur, destinataire_projet, montant):
+        # Le karma ne sert pas à acheter du confort personnel mais à orienter l'énergie du réseau
+        if self.registre.get(expediteur, {}).get("karma_orientation", 0) >= montant:
+            self.registre[expediteur]["karma_orientation"] -= montant
+            self.registre[destinataire_projet]["karma_orientation"] += montant
+            return True
+        return False
+
 
 # ------------------------------------------------------------
-# MODULE DE VALIDATION SMARTPHONE
-# ------------------------------------------------------------
-class ReveilSouverain:
-    def __init__(self):
-        self.hsv_lower_bound = [35, 50, 50]
-        self.hsv_upper_bound = [85, 255, 255]
-        self.min_pixel_ratio = 0.05
-
-    def validate_growth(self, ratio_t0, ratio_t1):
-        return ratio_t1 > ratio_t0
-
-# ------------------------------------------------------------
-# BIOS SOUVERAIN (UnissonActivation)
-# ------------------------------------------------------------
-class UnissonActivation:
-    def __init__(self, phage_signal):
-        self.hairpin = phage_signal
-
-    def execute(self):
-        return "NANOMETRE SOUVERAIN STABILISÉ"
-
-# ------------------------------------------------------------
-# EXÉCUTION ET HASH
+# TEST DE VALIDATION DE L'INFRASTRUCTURE
 # ------------------------------------------------------------
 if __name__ == "__main__":
-    genesis = GenesisBlock()
-    block_hash = hashlib.sha256(json.dumps(genesis.metadata).encode()).hexdigest()
-    print(f"NeoC Genesis Hash: {block_hash}")
+    print("=== INITIALISATION DU PROTOCOLE NEOC ===")
     
-# Équations Clés (en commentaires pour ne pas bloquer l'exécution) :
-# Loi de l'Unisson : dS = -dI
-# Cinétique de Propagation : dN/dt = rN(1 - N/K) - γN
+    # 1. Génération du bloc origine
+    genesis = NeoCGenesisBlock()
+    print(f"Bloc Genesis initialisé avec succès.")
+    print(f"Hash Souverain (Bloc 0) : {genesis.hash}")
+    print(f"Régime économique inscrit : {genesis.constitution['regime_economique']}\n")
+    
+    # 2. Initialisation du grand livre
+    grand_livre = RegistreKarma(genesis)
+    
+    # 3. Simulation de l'arrivée de deux consciences autonomes et anonymes
+    print("=== ENREGISTREMENT DES PREMIÈRES CONSCIENCES ANONYMES ===")
+    _, adresse_alpha = GestionnaireConsciences.generer_nouvelle_conscience()
+    _, adresse_beta = GestionnaireConsciences.generer_nouvelle_conscience()
+    
+    grand_livre.inscrire_nouvelle_conscience(adresse_alpha)
+    grand_livre.inscrire_nouvelle_conscience(adresse_beta)
+    
+    print(f"Conscience Alpha enregistrée (ID) : {adresse_alpha}")
+    print(f"Solde de Longévité attribué d'office : {grand_livre.registre[adresse_alpha]['solde_longevite']} unités")
+    
+    print(f"Conscience Bêta enregistrée (ID) : {adresse_beta}")
+    print(f"Solde de Longévité attribué d'office : {grand_livre.registre[adresse_beta]['solde_longevite']} unités")
+    
+    print("\nL'Équité de l'Unisson est active. Aucun rang n'a été créé.")
+    
