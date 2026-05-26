@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
-Module : ORCHESTRATOR (Central Nervous System - V3.1.2 Hybrid & P2P Ready)
+Module : ORCHESTRATOR (Central Nervous System - V3.1.3 Hybrid & P2P Ready)
 Integration : Unified OS, Unisson (Daemon P2P), Equity Constraint, Unified Sovereignty, Dissipation
 Routing : Gemini Live (Backbone), Claude Live, DeepSeek Live + Auto-Fallback + Gemma Local
 """
@@ -26,7 +26,7 @@ except ImportError:
 
 class NeoCOrchestrator:
     def __init__(self):
-        self.version = "3.1.2"
+        self.version = "3.1.3"
         print("⚓ [NeoC] Protocole initialisé. Système nerveux actif.")
         
         self.api_keys = {
@@ -103,7 +103,7 @@ class NeoCOrchestrator:
             res = self._call_deepseek(prompt_content)
             if not res.startswith("❌"): 
                 return res
-            print(" -> 🔄 [Sécurité] Échec DeepSeek (Finances/Réseau). Pivotement vers le tronc commun Gemini...")
+            print(" -> 🔄 [Sécurité] Échec DeepSeek. Pivotement vers le tronc commun Gemini...")
 
         # --- TENTATIVE CLAUDE ---
         elif intent == "deep_reasoning" and self.api_keys["claude"]:
@@ -138,7 +138,7 @@ class NeoCOrchestrator:
             return f"❌ Erreur Réseau Gemini : {str(e)}"
 
     def _call_gemma_local(self, prompt):
-        """Appel du modèle ouvert Gemma en local (sans cloud, sans fuite)"""
+        """Appel du modèle ouvert Gemma en local (Sécurité étendue à 120s pour la RAM du smartphone)"""
         headers = {"Content-Type": "application/json"}
         data = {
             "model": "gemma", 
@@ -147,7 +147,8 @@ class NeoCOrchestrator:
         }
         try:
             req = urllib.request.Request(self.gemma_url, data=json.dumps(data).encode('utf-8'), headers=headers)
-            with urllib.request.urlopen(req, timeout=30) as response:
+            # Allocation de 120 secondes pour encaisser le premier chargement lourd en RAM
+            with urllib.request.urlopen(req, timeout=120) as response:
                 res = json.loads(response.read().decode('utf-8'))
                 return res['response']
         except Exception as e:
@@ -190,7 +191,7 @@ class NeoCOrchestrator:
                 return res['choices'][0]['message']['content']
         except urllib.error.HTTPError as e:
             if e.code == 402:
-                return "❌ Erreur DeepSeek 402 : Solde insuffisant sur ce canal."
+                return "❌ Erreur DeepSeek 402 : Solde insuffisant."
             return f"❌ Erreur DeepSeek HTTP {e.code}"
         except Exception as e:
             return f"❌ DeepSeek indisponible."
@@ -212,7 +213,6 @@ class NeoCOrchestrator:
         self.node_layer.create_thought(thought_id, output_content, val_usage_privative=10.0)
         
         # --- ÉMISSION ANONYME P2P ---
-        # Si le démon Unisson est actif, on diffuse la brique validée
         if hasattr(self, 'unisson_daemon'):
             self.unisson_daemon.broadcast_knowledge(output_content)
             
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     neoc = NeoCOrchestrator()
     
     print("\n==================================================")
-    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1.2 LIVE) ")
+    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1.3 LIVE) ")
     print("       Routage agnostique & Hybridation Gemma     ")
     print("       Tape 'quitter' pour couper le flux        ")
     print("==================================================\n")
@@ -251,4 +251,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n⚓ Coupure d'urgence déclenchée.")
             break
-            
+        
