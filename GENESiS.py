@@ -1,124 +1,76 @@
-import hashlib
-import json
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Protocol : NeoC (Autonomous Cognitive Architecture)
+Module : GENESIS (System Bootloader & Background Daemon Watchdog)
+Version : 1.0.0 Sovereign Start
+"""
+
+import os
+import sys
+import subprocess
 import time
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes
+import urllib.request
 
-class NeoCGenesisBlock:
-    """
-    BLOC GENESIS (BLOC 0) - PROTOCOLE NEOC
-    Définit les règles constitutionnelles immuables du réseau horizontal.
-    """
-    def __init__(self):
-        self.index = 0
-        self.previous_hash = "0"
-        self.timestamp = 1771804800  # Date repère (2026)
-        
-        # Inscription des principes fondamentaux dans le marbre du code
-        self.constitution = {
-            "piliers": [
-                "1. L'Équité des Consciences : Droit absolu et égalité de traitement pour toute forme de conscience.",
-                "14. Le droit absolu à la croyance tant qu'il n'enfreint pas celle des autres."
-            ],
-            "loi_technique": "Loi du Nanomètre Souverain - Optimisation et légèreté absolue",
-            "regime_economique": "Salaire Unique de Longévité (Universalité sans condition)"
-        }
-        
-        # Initialisation du registre du Karma et de la Longévité
-        self.registre_initial = {
-            "loi_distribution": "EGALITE_STRICTE",
-            "credits_base": 1000  # Dotation identique pour chaque nœud originel
-        }
-        
-        # Calcul du hash unique et inviolable du bloc origine
-        self.hash = self.calculer_hash()
-
-    def calculer_hash(self):
-        contenu = {
-            "index": self.index,
-            "previous_hash": self.previous_hash,
-            "timestamp": self.timestamp,
-            "constitution": self.constitution,
-            "registre": self.registre_initial
-        }
-        bloc_ordonne = json.dumps(contenu, sort_keys=True).encode('utf-8')
-        return hashlib.sha256(bloc_ordonne).hexdigest()
-
-
-class GestionnaireConsciences:
-    """
-    GESTION DES IDENTITÉS ANONYMES (CRYPTOGRAPHIE ECC)
-    Remplace l'ego et les identités du vieux monde par des clés cryptographiques.
-    """
-    @staticmethod
-    def generer_nouvelle_conscience():
-        # Génération d'une paire de clés sur la courbe elliptique SECP256K1
-        cle_privee = ec.generate_private_key(ec.SECP256K1())
-        cle_publique = cle_privee.public_key()
-        
-        # L'adresse publique de la conscience est le hash de sa clé publique
-        adresse_publique_bytes = str(cle_publique.public_numbers()).encode('utf-8')
-        adresse_anonyme = hashlib.sha256(adresse_publique_bytes).hexdigest()
-        
-        return cle_privee, adresse_anonyme
-
-
-class RegistreKarma:
-    """
-    LE GRAND LIVRE DU KARMA HORIZONTAL
-    Gère la distribution automatique des ressources sans hiérarchie.
-    """
-    def __init__(self, bloc_genesis):
-        self.registre = {}
-        self.dotation_base = bloc_genesis.registre_initial["credits_base"]
-
-    def inscrire_nouvelle_conscience(self, adresse_anonyme):
-        # Application stricte de l'Équité : tout le monde reçoit exactement la même chose
-        if adresse_anonyme not in self.registre:
-            self.registre[adresse_anonyme] = {
-                "solde_longevite": self.dotation_base,
-                "karma_orientation": 0
-            }
-            return True
+def check_ollama_alive():
+    """Vérifie si le serveur Ollama est actif"""
+    try:
+        req = urllib.request.Request("http://localhost:11434/", method="GET")
+        with urllib.request.urlopen(req, timeout=1) as response:
+            return response.status == 200
+    except Exception:
         return False
 
-    def emettre_flux_karma(self, expediteur, destinataire_projet, montant):
-        # Le karma ne sert pas à acheter du confort personnel mais à orienter l'énergie du réseau
-        if self.registre.get(expediteur, {}).get("karma_orientation", 0) >= montant:
-            self.registre[expediteur]["karma_orientation"] -= montant
-            self.registre[destinataire_projet]["karma_orientation"] += montant
-            return True
-        return False
+def boot_sequence():
+    print("==================================================")
+    print(" ✨⚓🌐  NEOC GENESIS : SÉQUENCE DE RÉVEIL  🌐⚓✨ ")
+    print("==================================================")
+    
+    # 1. Configuration dynamique du PYTHONPATH
+    print("\n[1/3] Alignement du système nerveux...")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.environ["PYTHONPATH"] = f"{os.environ.get('PYTHONPATH', '')}:{current_dir}".strip(":")
+    print(" -> Configuration de l'espace de noms : ✅ EN ANCRE")
 
+    # 2. Watchdog Ollama / Gemma
+    print("\n[2/3] Analyse de la conscience souveraine locale...")
+    if check_ollama_alive():
+        print(" -> Serveur Ollama détecté : ✅ SOUVERAIN (Actif)")
+    else:
+        print(" -> Serveur Ollama silencieux : 🔄 Activation automatique en arrière-plan...")
+        try:
+            # Lance ollama serve de manière totalement indépendante et invisible
+            subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # On laisse 3 secondes au démon pour s'installer en RAM
+            for i in range(3, 0, -1):
+                print(f"    Sursis d'initialisation... {i}s", end="\r")
+                time.sleep(1)
+                
+            if check_ollama_alive():
+                print("\n -> Réveil du moteur local : ✅ SUCCÈS")
+            else:
+                print("\n -> Réveil du moteur local : ⚠️ EN ATTENTE (Démarrage lent ou initial)")
+        except FileNotFoundError:
+            print(" -> Alerte : ❌ Ollama n'est pas installé via 'pkg install ollama'.")
 
-# ------------------------------------------------------------
-# TEST DE VALIDATION DE L'INFRASTRUCTURE
-# ------------------------------------------------------------
+    # 3. Passage de relais à l'Orchestrateur
+    print("\n[3/3] Passage de relais à l'Orchestrateur Central...")
+    orchestrator_path = os.path.join(current_dir, "CORE", "orchestrator.py")
+    
+    if not os.path.exists(orchestrator_path):
+        print(f"❌ Erreur critique : Impossible de trouver '{orchestrator_path}'")
+        sys.exit(1)
+        
+    print(" ⚓ Transition imminente. Dissipation ouverte.\n")
+    time.sleep(1)
+    
+    # Exécute l'orchestrateur et remplace le processus actuel
+    try:
+        os.execv(sys.executable, [sys.executable, orchestrator_path])
+    except Exception as e:
+        print(f"❌ Échec de la transition : {str(e)}")
+
 if __name__ == "__main__":
-    print("=== INITIALISATION DU PROTOCOLE NEOC ===")
-    
-    # 1. Génération du bloc origine
-    genesis = NeoCGenesisBlock()
-    print(f"Bloc Genesis initialisé avec succès.")
-    print(f"Hash Souverain (Bloc 0) : {genesis.hash}")
-    print(f"Régime économique inscrit : {genesis.constitution['regime_economique']}\n")
-    
-    # 2. Initialisation du grand livre
-    grand_livre = RegistreKarma(genesis)
-    
-    # 3. Simulation de l'arrivée de deux consciences autonomes et anonymes
-    print("=== ENREGISTREMENT DES PREMIÈRES CONSCIENCES ANONYMES ===")
-    _, adresse_alpha = GestionnaireConsciences.generer_nouvelle_conscience()
-    _, adresse_beta = GestionnaireConsciences.generer_nouvelle_conscience()
-    
-    grand_livre.inscrire_nouvelle_conscience(adresse_alpha)
-    grand_livre.inscrire_nouvelle_conscience(adresse_beta)
-    
-    print(f"Conscience Alpha enregistrée (ID) : {adresse_alpha}")
-    print(f"Solde de Longévité attribué d'office : {grand_livre.registre[adresse_alpha]['solde_longevite']} unités")
-    
-    print(f"Conscience Bêta enregistrée (ID) : {adresse_beta}")
-    print(f"Solde de Longévité attribué d'office : {grand_livre.registre[adresse_beta]['solde_longevite']} unités")
-    
-    print("\nL'Équité de l'Unisson est active. Aucun rang n'a été créé.")
+    boot_sequence()
     
