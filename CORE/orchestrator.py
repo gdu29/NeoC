@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
-Module : ORCHESTRATOR (Central Nervous System - V3.1.0 Fault-Tolerant Switch)
-Integration : Unified OS, Unisson, Equity Constraint, Unified Sovereignty, Dissipation
+Module : ORCHESTRATOR (Central Nervous System - V3.1.2 Hybrid & P2P Ready)
+Integration : Unified OS, Unisson (Daemon P2P), Equity Constraint, Unified Sovereignty, Dissipation
 Routing : Gemini Live (Backbone), Claude Live, DeepSeek Live + Auto-Fallback + Gemma Local
 """
 
@@ -11,10 +11,12 @@ import os
 import json
 import urllib.request
 import urllib.error
+import threading
+import asyncio
 
 try:
     from CORE.NEOC_UNIFIED_OS import NeoCUnifiedOS
-    from CORE.UNISSON import UnissonFilter
+    from CORE.UNISSON import UnissonFilter, UnissonActivation
     from CORE.equity_constraint import EquityConstraint
     from CORE.unified_sovereignty import UnifiedSovereignty
     from CORE.dissipation import NeoCNode
@@ -24,7 +26,7 @@ except ImportError:
 
 class NeoCOrchestrator:
     def __init__(self):
-        self.version = "3.1.1"  # Évolution vers Gemma Local Integration
+        self.version = "3.1.2"
         print("⚓ [NeoC] Protocole initialisé. Système nerveux actif.")
         
         self.api_keys = {
@@ -33,7 +35,7 @@ class NeoCOrchestrator:
             "deepseek": os.environ.get("DEEPSEEK_API_KEY")
         }
         
-        # URL locale par défaut pour le démon Gemma (via Ollama)
+        # URL locale par défaut pour le moteur Gemma (via Ollama)
         self.gemma_url = "http://localhost:11434/api/generate"
         
         if ORGANES_PRETS:
@@ -42,7 +44,13 @@ class NeoCOrchestrator:
             self.equity = EquityConstraint()
             self.sovereignty = UnifiedSovereignty()
             self.node_layer = NeoCNode(node_id="Conscience_Gael_29")
-            print("🌐 [NeoC] Connexion établie avec tous les organes du CORE.")
+            
+            # --- JONCTION SOUVERAINE : Lancement du Démon Unisson en tâche de fond ---
+            self.unisson_daemon = UnissonActivation(host="0.0.0.0", port=8443)
+            self.daemon_thread = threading.Thread(target=self._start_unisson_background, daemon=True)
+            self.daemon_thread.start()
+            
+            print("🌐 [NeoC] Connexion établie avec tous les organes du CORE. Démon Unisson actif.")
         else:
             print("⚠️ [NeoC] Mode autonome : Organes détectés mais non encore interfaçés.")
 
@@ -50,13 +58,21 @@ class NeoCOrchestrator:
             status = "✅ CONFIGURÉ" if key else "❌ NON SPÉCIFIÉ"
             print(f" -> Canal [{api_name.upper()}] : {status}")
             
-        # Vérification discrète de la présence du moteur local Gemma
+        # Vérification de la présence du moteur local Gemma
         print(f" -> Canal [GEMMA_LOCAL] : {self._check_gemma_status()}")
 
-    def _check_gemma_status(self):
-        """Vérifie si le moteur Gemma local répond en tâche de fond"""
+    def _start_unisson_background(self):
+        """Déclenche la boucle réseau asynchrone d'Unisson dans un fil d'exécution séparé"""
         try:
-            # Simple ping rapide sur l'API Ollama locale
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.unisson_daemon.start_daemon())
+        except Exception as e:
+            print(f"⚠️ [Démon] Erreur lors du fonctionnement du démon Unisson : {str(e)}")
+
+    def _check_gemma_status(self):
+        """Vérifie discrètement si le moteur Gemma local répond en tâche de fond"""
+        try:
             req = urllib.request.Request("http://localhost:11434/", method="GET")
             with urllib.request.urlopen(req, timeout=1) as response:
                 if response.status == 200:
@@ -85,7 +101,7 @@ class NeoCOrchestrator:
         if intent == "heavy_logic" and self.api_keys["deepseek"]:
             print(" -> 🧠 [Switch] Routage cible vers l'infrastructure DeepSeek...")
             res = self._call_deepseek(prompt_content)
-            if not res.startswith("❌"):
+            if not res.startswith("❌"): 
                 return res
             print(" -> 🔄 [Sécurité] Échec DeepSeek (Finances/Réseau). Pivotement vers le tronc commun Gemini...")
 
@@ -104,7 +120,7 @@ class NeoCOrchestrator:
             if not res.startswith("❌"):
                 return res
             print(" -> 🔄 [Sécurité] Échec Réseau Gemini. Repli vers la conscience souveraine locale...")
-        
+
         # --- ULTIME REMPART : SOUVERAINETÉ INTERNE (GEMMA LOCAL) ---
         print(f" -> ⚓ [Souverain] Traitement local via Gemma (Hors-ligne / Hors-Cloud)...")
         return self._call_gemma_local(prompt_content)
@@ -122,12 +138,12 @@ class NeoCOrchestrator:
             return f"❌ Erreur Réseau Gemini : {str(e)}"
 
     def _call_gemma_local(self, prompt):
-        """Appel direct du modèle ouvert Gemma en local (sans cloud, sans fuite)"""
+        """Appel du modèle ouvert Gemma en local (sans cloud, sans fuite)"""
         headers = {"Content-Type": "application/json"}
         data = {
-            "model": "gemma", # Cible le modèle gemma installé sur la machine
+            "model": "gemma", 
             "prompt": prompt,
-            "stream": False   # On attend la réponse complète
+            "stream": False   
         }
         try:
             req = urllib.request.Request(self.gemma_url, data=json.dumps(data).encode('utf-8'), headers=headers)
@@ -194,6 +210,12 @@ class NeoCOrchestrator:
         impact_global_estime = 12.0 if "Loi" in output_content or "neoC" in output_content else 4.0
         cohesion_actuelle_reseau = 10.0
         self.node_layer.create_thought(thought_id, output_content, val_usage_privative=10.0)
+        
+        # --- ÉMISSION ANONYME P2P ---
+        # Si le démon Unisson est actif, on diffuse la brique validée
+        if hasattr(self, 'unisson_daemon'):
+            self.unisson_daemon.broadcast_knowledge(output_content)
+            
         return self.node_layer.evaluate_and_dissipate(thought_id, impact_global_estime, cohesion_actuelle_reseau)
 
     def execute_protocol(self, user_prompt):
@@ -207,7 +229,7 @@ if __name__ == "__main__":
     neoc = NeoCOrchestrator()
     
     print("\n==================================================")
-    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1.1 LIVE) ")
+    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1.2 LIVE) ")
     print("       Routage agnostique & Hybridation Gemma     ")
     print("       Tape 'quitter' pour couper le flux        ")
     print("==================================================\n")
@@ -229,4 +251,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n⚓ Coupure d'urgence déclenchée.")
             break
-        
+            
