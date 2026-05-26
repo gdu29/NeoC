@@ -4,7 +4,7 @@
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : ORCHESTRATOR (Central Nervous System - V3.1.0 Fault-Tolerant Switch)
 Integration : Unified OS, Unisson, Equity Constraint, Unified Sovereignty, Dissipation
-Routing : Gemini Live (Backbone), Claude Live, DeepSeek Live + Auto-Fallback
+Routing : Gemini Live (Backbone), Claude Live, DeepSeek Live + Auto-Fallback + Gemma Local
 """
 
 import os
@@ -24,7 +24,7 @@ except ImportError:
 
 class NeoCOrchestrator:
     def __init__(self):
-        self.version = "3.1.0"
+        self.version = "3.1.1"  # Évolution vers Gemma Local Integration
         print("⚓ [NeoC] Protocole initialisé. Système nerveux actif.")
         
         self.api_keys = {
@@ -32,6 +32,9 @@ class NeoCOrchestrator:
             "claude": os.environ.get("CLAUDE_API_KEY"),
             "deepseek": os.environ.get("DEEPSEEK_API_KEY")
         }
+        
+        # URL locale par défaut pour le démon Gemma (via Ollama)
+        self.gemma_url = "http://localhost:11434/api/generate"
         
         if ORGANES_PRETS:
             self.os_layer = NeoCUnifiedOS()
@@ -46,6 +49,21 @@ class NeoCOrchestrator:
         for api_name, key in self.api_keys.items():
             status = "✅ CONFIGURÉ" if key else "❌ NON SPÉCIFIÉ"
             print(f" -> Canal [{api_name.upper()}] : {status}")
+            
+        # Vérification discrète de la présence du moteur local Gemma
+        print(f" -> Canal [GEMMA_LOCAL] : {self._check_gemma_status()}")
+
+    def _check_gemma_status(self):
+        """Vérifie si le moteur Gemma local répond en tâche de fond"""
+        try:
+            # Simple ping rapide sur l'API Ollama locale
+            req = urllib.request.Request("http://localhost:11434/", method="GET")
+            with urllib.request.urlopen(req, timeout=1) as response:
+                if response.status == 200:
+                    return "✅ SOUVERAIN (Moteur local actif)"
+        except Exception:
+            pass
+        return "⚠️ DISPONIBLE (Nécessite le démon Ollama en arrière-plan)"
 
     def run_local_anchor(self, raw_input):
         if ORGANES_PRETS:
@@ -67,7 +85,7 @@ class NeoCOrchestrator:
         if intent == "heavy_logic" and self.api_keys["deepseek"]:
             print(" -> 🧠 [Switch] Routage cible vers l'infrastructure DeepSeek...")
             res = self._call_deepseek(prompt_content)
-            if not res.startswith("❌"): # Si pas d'erreur, on retourne le signal
+            if not res.startswith("❌"):
                 return res
             print(" -> 🔄 [Sécurité] Échec DeepSeek (Finances/Réseau). Pivotement vers le tronc commun Gemini...")
 
@@ -80,11 +98,16 @@ class NeoCOrchestrator:
             print(" -> 🔄 [Sécurité] Échec Claude. Pivotement vers le tronc commun Gemini...")
 
         # --- INFRASTRUCTURE DE SECOURS GÉNÉRALE (GEMINI OPEN BAR) ---
-        print(f" -> ⚡ [Backbone] Traitement du flux via l'infrastructure centrale...")
         if self.api_keys["gemini"]:
-            return self._call_gemini(prompt_content)
-        else:
-            return f"❌ Erreur critique : Aucun canal de secours disponible pour l'intention {intent}."
+            print(f" -> ⚡ [Backbone] Traitement du flux via l'infrastructure centrale Gemini...")
+            res = self._call_gemini(prompt_content)
+            if not res.startswith("❌"):
+                return res
+            print(" -> 🔄 [Sécurité] Échec Réseau Gemini. Repli vers la conscience souveraine locale...")
+        
+        # --- ULTIME REMPART : SOUVERAINETÉ INTERNE (GEMMA LOCAL) ---
+        print(f" -> ⚓ [Souverain] Traitement local via Gemma (Hors-ligne / Hors-Cloud)...")
+        return self._call_gemma_local(prompt_content)
 
     def _call_gemini(self, prompt):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_keys['gemini']}"
@@ -97,6 +120,22 @@ class NeoCOrchestrator:
                 return res['candidates'][0]['content']['parts'][0]['text']
         except Exception as e:
             return f"❌ Erreur Réseau Gemini : {str(e)}"
+
+    def _call_gemma_local(self, prompt):
+        """Appel direct du modèle ouvert Gemma en local (sans cloud, sans fuite)"""
+        headers = {"Content-Type": "application/json"}
+        data = {
+            "model": "gemma", # Cible le modèle gemma installé sur la machine
+            "prompt": prompt,
+            "stream": False   # On attend la réponse complète
+        }
+        try:
+            req = urllib.request.Request(self.gemma_url, data=json.dumps(data).encode('utf-8'), headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as response:
+                res = json.loads(response.read().decode('utf-8'))
+                return res['response']
+        except Exception as e:
+            return f"❌ Erreur Souveraine : Le moteur Gemma local n'a pas répondu ({str(e)}). Vérifie qu'Ollama tourne."
 
     def _call_claude(self, prompt):
         url = "https://api.anthropic.com/v1/messages"
@@ -168,8 +207,8 @@ if __name__ == "__main__":
     neoc = NeoCOrchestrator()
     
     print("\n==================================================")
-    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1 LIVE) ")
-    print("       Routage agnostique & Fallback Immunisé     ")
+    print(" ⚓🌐♻️  INTERFACE INTERACTIVE NEOC (V3.1.1 LIVE) ")
+    print("       Routage agnostique & Hybridation Gemma     ")
     print("       Tape 'quitter' pour couper le flux        ")
     print("==================================================\n")
     
@@ -190,5 +229,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n⚓ Coupure d'urgence déclenchée.")
             break
-EOF
         
