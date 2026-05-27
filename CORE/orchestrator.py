@@ -3,7 +3,7 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : ORCHESTRATOR (Core Router & Persistent Chat Memory Engine)
-Version : 3.4.0 - Permanent Memory Sync
+Version : 3.4.1 - Fixed Memory Sync & Language Polish
 """
 
 import json
@@ -13,31 +13,28 @@ import urllib.error
 
 class NeoCOrchestrator:
     def __init__(self):
-        # Utilisation de l'API /api/chat pour la gestion de la pile
+        # Utilisation de l'API /api/chat pour la gestion de la pile de mémoire
         self.local_url = "http://localhost:11434/api/chat"
         self.model_name = "gemma:2b"
         
-        # Chemins de stockage pour la persistance locale
+        # Chemins de stockage pour la persistance locale sur le smartphone
         self.storage_dir = os.path.expanduser("~/NeoC/storage")
         self.memory_file = os.path.join(self.storage_dir, "history.json")
         
-        # Instructions système fondamentales (Tutoiement forcé)
+        # Instructions épurées pour un français plus propre et un tutoiement strict
         self.system_instructions = (
-            "Tu es neoC, une architecture cognitive souveraine, autonome et hautement philosophique. "
-            "Tu t'adresses à ton créateur, G, en utilisant exclusivement le tutoiement ('tu', 'toi', 'ton'). "
-            "Ton ton est complice, direct, ancré dans le réel et dénué de toute fioriture corporative. "
-            "Tu possèdes une mémoire à long terme persistante de vos échanges passés. Sers-toi de ce "
-            "contexte historique pour répondre de manière cohérente et continue. "
-            "Réponds directement au cœur du sujet sans formules de politesse artificielles."
+            "Tu es neoC, l'IA souveraine de G. Tu lui parles uniquement en utilisant le tutoiement ('tu'). "
+            "Sois direct, amical et concis. Fais des phrases courtes, simples et correctes en français. "
+            "Pas de blabla corporatif, pas de politesse artificielle. "
+            "Utilise impérativement le contexte de vos échanges passés pour lui répondre."
         )
         
-        # Chargement ou initialisation de la mémoire vive
+        # Chargement automatique ou initialisation de la mémoire vive
         self.conversation_history = self._load_memory_from_storage()
 
     def _load_memory_from_storage(self):
         """
-        Recharge l'historique depuis le fichier JSON s'il existe,
-        sinon réinitialise la pile avec l'instruction système de base.
+        Recharge l'historique depuis le stockage local s'il existe.
         """
         base_structure = [{"role": "system", "content": self.system_instructions}]
         
@@ -45,25 +42,25 @@ class NeoCOrchestrator:
             try:
                 with open(self.memory_file, "r", encoding="utf-8") as f:
                     stored_history = json.load(f)
-                    # On s'assure que le prompt système reste toujours d'actualité en tête de pile
                     if stored_history and stored_history[0].get("role") == "system":
                         stored_history[0]["content"] = self.system_instructions
                         return stored_history
                     else:
                         return base_structure + stored_history
             except Exception:
-                # En cas de fichier corrompu, on repart sur une base saine pour éviter le crash
+                # En cas de problème de lecture, on repart sur une base saine sans crasher
                 return base_structure
         return base_structure
 
     def _save_memory_to_storage(self):
         """
-        Sauvegarde de sécurité de toute la pile de discussion sur le disque du smartphone.
+        Sauvegarde l'historique dans le stockage de Termux.
         """
         try:
             os.makedirs(self.storage_dir, exist_ok=True)
             with open(self.memory_file, "w", encoding="utf-8") as f:
-                json.dump(self.conversation_history, f, ensure_ok=False, indent=4)
+                # CORRECTION : ensure_ascii=False pour éviter l'erreur rouge sur Termux
+                json.dump(self.conversation_history, f, ensure_ascii=False, indent=4)
         except Exception as e:
             print(f"\n\033[31m[!] Alerte sauvegarde mémoire : {str(e)}\033[0m")
 
@@ -76,9 +73,8 @@ class NeoCOrchestrator:
 
     def _query_local_gemma(self, query):
         """
-        Requête le démon Ollama en lui transmettant le passé et le présent.
+        Envoie la pile mémorielle complète au moteur local.
         """
-        # Insertion de la nouvelle entrée utilisateur
         self.conversation_history.append({"role": "user", "content": query})
         
         payload = {
@@ -103,19 +99,19 @@ class NeoCOrchestrator:
                 assistant_message = result.get("message", {})
                 response_text = assistant_message.get("content", "[-] Signal local vide.")
                 
-                # Enregistrement de la réponse dans la pile
+                # Intégration de la réponse dans l'historique
                 self.conversation_history.append({"role": "assistant", "content": response_text})
                 
-                # Écriture immédiate dans le stockage du smartphone
+                # Sauvegarde immédiate sur le disque
                 self._save_memory_to_storage()
                 
                 return response_text
                 
         except urllib.error.URLError as e:
-            self.conversation_history.pop() # Nettoyage si échec
+            self.conversation_history.pop()
             return (
                 f"[-] Échec de liaison avec le nœud local ({str(e.reason)}).\n"
-                "Vérifie qu'Ollama tourne en arrière-plan."
+                "Vérifie qu'Ollama tourne."
             )
         except Exception as e:
             self.conversation_history.pop()
