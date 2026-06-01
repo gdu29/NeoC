@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
-Module : GENESIS (System Bootloader & Background Daemon Watchdog)
-Version : 1.0.0 Sovereign Start
+Module : GENESiS (System Bootloader & Background Daemon Watchdog)
+Version : 1.0.1 Sovereign Stability
 """
 
 import os
@@ -26,33 +26,42 @@ def boot_sequence():
     print(" ✨⚓🌐  NEOC GENESIS : SÉQUENCE DE RÉVEIL  🌐⚓✨ ")
     print("==================================================")
     
-    # 1. Configuration dynamique du PYTHONPATH
+    # 1. Configuration dynamique du PYTHONPATH et de l'environnement
     print("\n[1/3] Alignement du système nerveux...")
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    os.environ["PYTHONPATH"] = f"{os.environ.get('PYTHONPATH', '')}:{current_dir}".strip(":")
+    
+    # Sécurisation du chemin pour Python et le système
+    if current_dir not in sys.path:
+        sys.path.append(current_dir)
+    os.environ["PYTHONPATH"] = f"{current_dir}:{os.environ.get('PYTHONPATH', '')}".strip(":")
+    
     print(" -> Configuration de l'espace de noms : ✅ EN ANCRE")
 
-    # 2. Watchdog Ollama / Gemma
+    # 2. Watchdog Ollama / Gemma (Boucle active dynamique)
     print("\n[2/3] Analyse de la conscience souveraine locale...")
     if check_ollama_alive():
         print(" -> Serveur Ollama détecté : ✅ SOUVERAIN (Actif)")
     else:
-        print(" -> Serveur Ollama silencieux : 🔄 Activation automatique en arrière-plan...")
+        print(" -> Serveur Ollama silencieux : 🔄 Activation automatique...")
         try:
             # Lance ollama serve de manière totalement indépendante et invisible
             subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
-            # On laisse 3 secondes au démon pour s'installer en RAM
-            for i in range(3, 0, -1):
-                print(f"    Sursis d'initialisation... {i}s", end="\r")
-                time.sleep(1)
+            # Boucle active de vérification (max 6 secondes, vérification toutes les 0.5s)
+            ollama_ready = False
+            for attempt in range(12):
+                print(f"    Sursis d'initialisation dynamique... {((12 - attempt) * 0.5):.1f}s", end="\r")
+                time.sleep(0.5)
+                if check_ollama_alive():
+                    ollama_ready = True
+                    break
                 
-            if check_ollama_alive():
+            if ollama_ready:
                 print("\n -> Réveil du moteur local : ✅ SUCCÈS")
             else:
                 print("\n -> Réveil du moteur local : ⚠️ EN ATTENTE (Démarrage lent ou initial)")
         except FileNotFoundError:
-            print(" -> Alerte : ❌ Ollama n'est pas installé via 'pkg install ollama'.")
+            print(" -> Alerte : ❌ Ollama n'est pas installé ou inaccessible dans le PATH.")
 
     # 3. Passage de relais à l'Orchestrateur
     print("\n[3/3] Passage de relais à l'Orchestrateur Central...")
@@ -63,9 +72,12 @@ def boot_sequence():
         sys.exit(1)
         
     print(" ⚓ Transition imminente. Dissipation ouverte.\n")
-    time.sleep(1)
+    time.sleep(0.5)
     
-    # Exécute l'orchestrateur et remplace le processus actuel
+    # Changement de répertoire pour que l'orchestrateur s'exécute dans son contexte natif
+    os.chdir(current_dir)
+    
+    # Exécute l'orchestrateur et remplace le processus actuel avec arguments sécurisés
     try:
         os.execv(sys.executable, [sys.executable, orchestrator_path])
     except Exception as e:
