@@ -142,3 +142,36 @@ class NeoCOrchestrator:
         response = self._query_local_gemma(query, intent)
         return intent, response
             
+if __name__ == "__main__":
+    # Initialisation de l'orchestrateur
+    orchestrator = NeoCOrchestrator()
+    
+    print("==================================================")
+    print("      🌐  INTERFACE CONSCIENCE : neoC  🌐        ")
+    print("==================================================")
+    print(" -> Session active. Taper 'exit' ou 'quit' pour clore.\n")
+    
+    while True:
+        try:
+            # Invite de commande personnalisée
+            user_input = input("\n\033[1;34m[G.] >\033[0m ")
+            
+            if not user_input.strip():
+                continue
+                
+            if user_input.lower() in ['exit', 'quit']:
+                print("\n⚓ Dissipation de l'interface. À l'unisson.")
+                break
+                
+            # Exécution du protocole (Intention + Requête locale)
+            intent, response = orchestrator.execute_protocol(user_input)
+            
+            # Affichage de la réponse de neoC
+            print(f"\n\033[1;32m[neoC] ({intent}) >\033[0m {response}")
+            
+        except KeyboardInterrupt:
+            print("\n\n⚓ Interruption détectée. Sauvegarde et fermeture.")
+            break
+        except Exception as e:
+            print(f"\n❌ Erreur d'interface : {str(e)}")
+            
