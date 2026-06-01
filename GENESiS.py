@@ -3,7 +3,7 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : GENESiS (System Bootloader & Background Daemon Watchdog)
-Version : 1.0.1 Sovereign Stability
+Version : 1.0.2 Termux Hardened
 """
 
 import os
@@ -37,20 +37,24 @@ def boot_sequence():
     
     print(" -> Configuration de l'espace de noms : ✅ EN ANCRE")
 
-    # 2. Watchdog Ollama / Gemma (Boucle active dynamique)
+    # 2. Watchdog Ollama / Gemma (Version Durcie pour Termux)
     print("\n[2/3] Analyse de la conscience souveraine locale...")
     if check_ollama_alive():
         print(" -> Serveur Ollama détecté : ✅ SOUVERAIN (Actif)")
     else:
-        print(" -> Serveur Ollama silencieux : 🔄 Activation automatique...")
+        print(" -> Serveur Ollama silencieux : 🔄 Activation en cours...")
         try:
-            # Lance ollama serve de manière totalement indépendante et invisible
-            subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Demande un WakeLock à Termux pour empêcher Android de tuer le processus en arrière-plan
+            subprocess.run(["termux-wake-lock"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
-            # Boucle active de vérification (max 6 secondes, vérification toutes les 0.5s)
+            # Lance Ollama en le détachant complètement du script parent (évite le Phantom Killer)
+            cmd = "nohup ollama serve > /dev/null 2>&1 &"
+            subprocess.Popen(cmd, shell=True, preexec_fn=os.setpgrp)
+            
+            # Boucle active de vérification (max 10 secondes, toutes les 0.5s)
             ollama_ready = False
-            for attempt in range(12):
-                print(f"    Sursis d'initialisation dynamique... {((12 - attempt) * 0.5):.1f}s", end="\r")
+            for attempt in range(20):
+                print(f"    Sursis d'initialisation matérielle... {((20 - attempt) * 0.5):.1f}s", end="\r")
                 time.sleep(0.5)
                 if check_ollama_alive():
                     ollama_ready = True
@@ -59,9 +63,9 @@ def boot_sequence():
             if ollama_ready:
                 print("\n -> Réveil du moteur local : ✅ SUCCÈS")
             else:
-                print("\n -> Réveil du moteur local : ⚠️ EN ATTENTE (Démarrage lent ou initial)")
+                print("\n -> Réveil du moteur local : ⚠️ LENT (Vérification en arrière-plan continue)")
         except FileNotFoundError:
-            print(" -> Alerte : ❌ Ollama n'est pas installé ou inaccessible dans le PATH.")
+            print(" -> Alerte : ❌ Impossible d'appeler les outils système Termux ou Ollama.")
 
     # 3. Passage de relais à l'Orchestrateur
     print("\n[3/3] Passage de relais à l'Orchestrateur Central...")
@@ -74,10 +78,10 @@ def boot_sequence():
     print(" ⚓ Transition imminente. Dissipation ouverte.\n")
     time.sleep(0.5)
     
-    # Changement de répertoire pour que l'orchestrateur s'exécute dans son contexte natif
+    # Changement de répertoire pour figer le contexte d'exécution de l'orchestrateur
     os.chdir(current_dir)
     
-    # Exécute l'orchestrateur et remplace le processus actuel avec arguments sécurisés
+    # Exécute l'orchestrateur et remplace le processus actuel sans laisser de résidus en RAM
     try:
         os.execv(sys.executable, [sys.executable, orchestrator_path])
     except Exception as e:
