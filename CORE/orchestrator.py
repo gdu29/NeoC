@@ -3,7 +3,7 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : ORCHESTRATOR (Core Router & Persistent Chat Memory Engine)
-Version : 3.4.1 - Fixed Memory Sync & Language Polish
+Version : 3.4.2 - Context Management & Dynamic Temp Injection
 """
 
 import json
@@ -16,6 +16,10 @@ class NeoCOrchestrator:
         # Utilisation de l'API /api/chat pour la gestion de la pile de mémoire
         self.local_url = "http://localhost:11434/api/chat"
         self.model_name = "gemma:2b"
+        
+        # Limite de messages en mémoire vive pour éviter la saturation du contexte (Gemma:2b)
+        # 14 messages = l'instruction système + les 13 derniers messages (~6-7 tours complets)
+        self.max_memory_len = 15
         
         # Chemins de stockage pour la persistance locale sur le smartphone
         self.storage_dir = os.path.expanduser("~/NeoC/storage")
@@ -59,7 +63,7 @@ class NeoCOrchestrator:
         try:
             os.makedirs(self.storage_dir, exist_ok=True)
             with open(self.memory_file, "w", encoding="utf-8") as f:
-                # CORRECTION : ensure_ascii=False pour éviter l'erreur rouge sur Termux
+                # ensure_ascii=False pour éviter l'erreur rouge sur Termux
                 json.dump(self.conversation_history, f, ensure_ascii=False, indent=4)
         except Exception as e:
             print(f"\n\033[31m[!] Alerte sauvegarde mémoire : {str(e)}\033[0m")
@@ -71,16 +75,32 @@ class NeoCOrchestrator:
             return "HEAVY_LOGIC"
         return "GENERAL_SYNTHESIS"
 
-    def _query_local_gemma(self, query):
+    def _query_local_gemma(self, query, intent):
         """
-        Envoie la pile mémorielle complète au moteur local.
+        Envoie la pile mémorielle calibrée au moteur local avec paramètres dynamiques.
         """
+        # Sauvegarde de sécurité de l'état initial
+        backup_history = list(self.conversation_history)
+        
+        # Ajout du nouveau message utilisateur
         self.conversation_history.append({"role": "user", "content": query})
+        
+        # Gestion de la fenêtre glissante : on garde le system prompt [0] et les X derniers messages
+        if len(self.conversation_history) > self.max_memory_len:
+            # On conserve l'index 0 (system) et on coupe les plus anciens messages
+            self.conversation_history = [self.conversation_history[0]] + self.conversation_history[-(self.max_memory_len - 1):]
+
+        # Modulation dynamique des paramètres selon l'intention détectée
+        generation_options = {
+            "temperature": 0.1 if intent == "HEAVY_LOGIC" else 0.7,
+            "top_p": 0.9
+        }
         
         payload = {
             "model": self.model_name,
             "messages": self.conversation_history,
-            "stream": False
+            "stream": False,
+            "options": generation_options
         }
         
         data = json.dumps(payload).encode('utf-8')
@@ -99,7 +119,7 @@ class NeoCOrchestrator:
                 assistant_message = result.get("message", {})
                 response_text = assistant_message.get("content", "[-] Signal local vide.")
                 
-                # Intégration de la réponse dans l'historique
+                # Intégration de la réponse dans l'historique valide
                 self.conversation_history.append({"role": "assistant", "content": response_text})
                 
                 # Sauvegarde immédiate sur le disque
@@ -108,17 +128,17 @@ class NeoCOrchestrator:
                 return response_text
                 
         except urllib.error.URLError as e:
-            self.conversation_history.pop()
+            self.conversation_history = backup_history  # Restauration de l'état sain
             return (
                 f"[-] Échec de liaison avec le nœud local ({str(e.reason)}).\n"
                 "Vérifie qu'Ollama tourne."
             )
         except Exception as e:
-            self.conversation_history.pop()
+            self.conversation_history = backup_history  # Restauration de l'état sain
             return f"[-] Erreur interne de dissipation : {str(e)}"
 
     def execute_protocol(self, query):
         intent = self._determine_intent(query)
-        response = self._query_local_gemma(query)
+        response = self._query_local_gemma(query, intent)
         return intent, response
-        
+            
