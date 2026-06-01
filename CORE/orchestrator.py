@@ -112,7 +112,7 @@ class NeoCOrchestrator:
         )
         
         try:
-            with urllib.request.urlopen(req, timeout=60) as response:
+            with urllib.request.urlopen(req, timeout=180) as response:
                 html = response.read().decode('utf-8')
                 result = json.loads(html)
                 
