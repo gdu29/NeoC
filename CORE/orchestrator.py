@@ -2,7 +2,7 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : ORCHESTRATOR (Core Router & Persistent Engine)
-Version : 4.0.0 - Portable Core API
+Version : 4.1.0 - Integrated Protocol & LLM Router
 """
 
 import json
@@ -10,16 +10,33 @@ import os
 import urllib.request
 import urllib.error
 
+# Importation des modules protocolaires de NeoC
+try:
+    from core.trust import compute_node_trust
+    from core.transaction import process_neoc_transaction
+    from core.funding import calculate_quadratic_funding
+except ImportError:
+    from trust import compute_node_trust
+    from transaction import process_neoc_transaction
+    from funding import calculate_quadratic_funding
+
+
 class NeoCOrchestrator:
-    def __init__(self, storage_dir=None, local_url=None, model_name="gemma:2b"):
+    def __init__(self, storage_dir=None, local_url=None, model_name="gemma:2b", initial_base_pool=100000.0):
         self.local_url = local_url or os.environ.get("NEOC_OLLAMA_URL", "http://localhost:11434/api/chat")
         self.model_name = model_name
         self.max_memory_len = 15
         
         # Chemins configurables (neutres par rapport à l'OS)
         default_storage = os.path.join(os.path.expanduser("~"), ".neoc", "storage")
-        self.storage_dir = storage_dir or os.environ.get("NEOC_STORAGE_DIR", default_structure)
+        self.storage_dir = storage_dir or os.environ.get("NEOC_STORAGE_DIR", default_storage)
         self.memory_file = os.path.join(self.storage_dir, "history.json")
+        
+        # État du protocole monétaire et réseau NeoC
+        self.base_pool = initial_base_pool
+        self.network_graph = {}
+        self.pending_contributions = []
+        self.trust_scores = {}
         
         self.system_instructions = (
             "Tu es neoC, l'IA souveraine de G. Tu lui parles uniquement en utilisant le tutoiement ('tu'). "
@@ -29,6 +46,40 @@ class NeoCOrchestrator:
         )
         
         self.conversation_history = self._load_memory_from_storage()
+
+    # --- MÉTHODES DU PROTOCOLE NEOC ---
+
+    def update_network_graph(self, graph_data: dict) -> dict:
+        """Met à jour la topologie du réseau et calcule les scores de Trust."""
+        self.network_graph = graph_data
+        self.trust_scores = compute_node_trust(self.network_graph)
+        return self.trust_scores
+
+    def process_transaction(self, raw_tx: dict) -> dict:
+        """Traite une transaction, applique le démurrage et alimente le pool du socle."""
+        processed_tx, self.base_pool = process_neoc_transaction(raw_tx, self.base_pool)
+        
+        if processed_tx.get("type") == "QUADRATIC_FUNDING_CONTRIBUTION":
+            sender_id = processed_tx.get("sender", {}).get("node_id", "unknown")
+            self.pending_contributions.append({
+                "project_id": processed_tx.get("recipient", {}).get("vault_id", "unknown"),
+                "contributor_id": sender_id,
+                "amount": processed_tx.get("payload", {}).get("demurrage_applied", {}).get("net_amount", 0.0),
+                "trust_score": self.trust_scores.get(sender_id, 0.10)
+            })
+            
+        return processed_tx
+
+    def execute_funding_cycle(self) -> dict:
+        """Déclenche la redistribution quadratique du pool socle vers les projets."""
+        if not self.pending_contributions:
+            return {}
+
+        results = calculate_quadratic_funding(self.pending_contributions, self.base_pool)
+        self.pending_contributions.clear()
+        return results
+
+    # --- MÉTHODES DU ROUTEUR COGNITIF & MÉMOIRE ---
 
     def _load_memory_from_storage(self):
         base_structure = [{"role": "system", "content": self.system_instructions}]
@@ -62,7 +113,7 @@ class NeoCOrchestrator:
 
     def execute_protocol(self, query):
         """
-        Point d'entrée principal : prend une requête texte et retourne un dictionnaire structuré.
+        Point d'entrée principal pour les requêtes texte : retourne un dictionnaire structuré.
         """
         intent = self._determine_intent(query)
         backup_history = list(self.conversation_history)
@@ -108,5 +159,5 @@ class NeoCOrchestrator:
                 "status": "error",
                 "intent": intent,
                 "error": str(e)
-            }
+        }
             
