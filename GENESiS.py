@@ -3,7 +3,7 @@
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
 Module : GENESiS (System Bootloader & Protocol Verification Engine)
-Version : 3.0.0 - Mobile & Desktop Self-Testing Bootloader
+Version : 3.1.0 - Robust Multi-Directory Bootloader
 """
 
 import os
@@ -13,17 +13,28 @@ import time
 import urllib.request
 import json
 
-# Importation dynamique de l'orchestrateur NeoC
 def load_orchestrator():
+    """Tente de charger NeoCOrchestrator selon l'emplacement du dossier (CORE, core ou racine)."""
+    # 1. Dossier CORE (majuscules)
+    try:
+        from CORE.orchestrator import NeoCOrchestrator
+        return NeoCOrchestrator
+    except ImportError:
+        pass
+
+    # 2. Dossier core (minuscules)
     try:
         from core.orchestrator import NeoCOrchestrator
         return NeoCOrchestrator
     except ImportError:
-        try:
-            from orchestrator import NeoCOrchestrator
-            return NeoCOrchestrator
-        except ImportError:
-            return None
+        pass
+
+    # 3. Racine du dépôt
+    try:
+        from orchestrator import NeoCOrchestrator
+        return NeoCOrchestrator
+    except ImportError:
+        return None
 
 # Configuration du modèle local et de l'API
 DEFAULT_MODEL = os.environ.get("NEOC_MODEL", "gemma2:2b")
@@ -65,52 +76,55 @@ def run_protocol_self_test(orchestrator_cls):
     """Exécute un test à froid de la logique monétaire et protocolaire."""
     print("\n[2/4] Test du protocole NeoC (Trust, Démurrage & Financement)...")
     
-    orchestrator = orchestrator_cls(initial_base_pool=100000.0)
-    print(f" -> Pool initial du Socle : {orchestrator.base_pool:.2f} MATTER_B")
+    try:
+        orchestrator = orchestrator_cls(initial_base_pool=100000.0)
+        print(f" -> Pool initial du Socle : {orchestrator.base_pool:.2f} MATTER_B")
 
-    # 1. Test du graphe et calcul du Trust
-    sample_graph = {
-        "node_creative_01": ["node_socle_A", "node_socle_B", "node_socle_C"],
-        "node_socle_A": ["node_creative_01"],
-        "node_socle_B": ["node_creative_01"],
-        "sybil_1": ["sybil_2"], "sybil_2": ["sybil_1"] # Boucle suspecte
-    }
-    trust_scores = orchestrator.update_network_graph(sample_graph)
-    print(f" -> Calcul du Trust : {len(trust_scores)} nœuds évalués")
-    print(f"    • Trust nœud sain  : {trust_scores.get('node_creative_01', 0.0)}")
-    print(f"    • Trust boucle sybil : {trust_scores.get('sybil_1', 0.0)} (Pénalisé)")
+        # 1. Test du graphe et calcul du Trust
+        sample_graph = {
+            "node_creative_01": ["node_socle_A", "node_socle_B", "node_socle_C"],
+            "node_socle_A": ["node_creative_01"],
+            "node_socle_B": ["node_creative_01"],
+            "sybil_1": ["sybil_2"], "sybil_2": ["sybil_1"] # Boucle suspecte
+        }
+        trust_scores = orchestrator.update_network_graph(sample_graph)
+        print(f" -> Calcul du Trust : {len(trust_scores)} nœuds évalués")
+        print(f"    • Trust nœud sain  : {trust_scores.get('node_creative_01', 0.0)}")
+        print(f"    • Trust boucle sybil : {trust_scores.get('sybil_1', 0.0)} (Pénalisé)")
 
-    # 2. Test d'une transaction avec fonte (Démurrage)
-    sample_tx = {
-        "version": "0.3.0",
-        "tx_hash": "0xgenesis_mobile_test",
-        "timestamp": int(time.time()),
-        "tick": 1,
-        "type": "QUADRATIC_FUNDING_CONTRIBUTION",
-        "sender": {"node_id": "node_creative_01", "trust_score": trust_scores.get('node_creative_01', 0.90)},
-        "recipient": {"type": "MILESTONE_VAULT", "vault_id": "projet_ancre_p2p"},
-        "payload": {
-            "asset": "MATTER_B",
-            "gross_amount": 200.0,
-            "demurrage_applied": {
-                "rate_lambda": 0.005,
-                "holding_time_ticks": 12
+        # 2. Test d'une transaction avec fonte (Démurrage)
+        sample_tx = {
+            "version": "0.3.0",
+            "tx_hash": "0xgenesis_mobile_test",
+            "timestamp": int(time.time()),
+            "tick": 1,
+            "type": "QUADRATIC_FUNDING_CONTRIBUTION",
+            "sender": {"node_id": "node_creative_01", "trust_score": trust_scores.get('node_creative_01', 0.90)},
+            "recipient": {"type": "MILESTONE_VAULT", "vault_id": "projet_ancre_p2p"},
+            "payload": {
+                "asset": "MATTER_B",
+                "gross_amount": 200.0,
+                "demurrage_applied": {
+                    "rate_lambda": 0.005,
+                    "holding_time_ticks": 12
+                }
             }
         }
-    }
-    tx_res = orchestrator.process_transaction(sample_tx)
-    demurrage = tx_res["payload"]["demurrage_applied"]
-    print(f" -> Transaction test : {tx_res['payload']['gross_amount']} MATTER_B engagés")
-    print(f"    • Transfert net : {demurrage['net_amount']} MATTER_B")
-    print(f"    • Fonte recyclée vers le Socle : {demurrage['decay_loss']} MATTER_B")
-    print(f" -> Nouveau solde Pool Socle : {orchestrator.base_pool:.2f} MATTER_B")
+        tx_res = orchestrator.process_transaction(sample_tx)
+        demurrage = tx_res["payload"]["demurrage_applied"]
+        print(f" -> Transaction test : {tx_res['payload']['gross_amount']} MATTER_B engagés")
+        print(f"    • Transfert net : {demurrage['net_amount']} MATTER_B")
+        print(f"    • Fonte recyclée vers le Socle : {demurrage['decay_loss']} MATTER_B")
+        print(f" -> Nouveau solde Pool Socle : {orchestrator.base_pool:.2f} MATTER_B")
 
-    # 3. Test de distribution quadratique
-    funding_res = orchestrator.execute_funding_cycle()
-    for proj_id, alloc in funding_res.items():
-        print(f" -> Distribution Quadratique [{proj_id}] : {alloc['total_allocated']} MATTER_B attribués")
+        # 3. Test de distribution quadratique
+        funding_res = orchestrator.execute_funding_cycle()
+        for proj_id, alloc in funding_res.items():
+            print(f" -> Distribution Quadratique [{proj_id}] : {alloc['total_allocated']} MATTER_B attribués")
 
-    print(" -> État du Protocole : ✅ FONCTIONNEL ET SANS ERREUR")
+        print(" -> État du Protocole : ✅ FONCTIONNEL ET SANS ERREUR")
+    except Exception as e:
+        print(f" ⚠️ Erreur pendant le test du protocole : {str(e)}")
 
 def boot_sequence():
     print("==================================================")
@@ -120,10 +134,14 @@ def boot_sequence():
     # 1. Configuration du PYTHONPATH
     print("\n[1/4] Alignement de l'espace de noms...")
     current_dir = os.path.dirname(os.path.abspath(__file__))
+    core_dir = os.path.join(current_dir, "CORE")
     
     if current_dir not in sys.path:
         sys.path.append(current_dir)
-    os.environ["PYTHONPATH"] = f"{current_dir}:{os.environ.get('PYTHONPATH', '')}".strip(":")
+    if os.path.exists(core_dir) and core_dir not in sys.path:
+        sys.path.append(core_dir)
+        
+    os.environ["PYTHONPATH"] = f"{current_dir}:{core_dir}:{os.environ.get('PYTHONPATH', '')}".strip(":")
     print(" -> Espace de noms : ✅ OK")
 
     # 2. Exécution du test protocolaire
@@ -191,4 +209,3 @@ def boot_sequence():
 
 if __name__ == "__main__":
     boot_sequence()
-                
