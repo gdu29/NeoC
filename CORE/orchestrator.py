@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Protocol : NeoC (Autonomous Cognitive Architecture)
-Module : ORCHESTRATOR (Core Router & Persistent Engine)
-Version : 4.1.0 - Integrated Protocol & LLM Router
+Module : ORCHESTRATOR (Core Router, Persistent Engine & Cryptographic Sovereignty)
+Version : 4.2.0 - Secure Identity & Protocol Integrated Core
 """
 
 import json
@@ -10,19 +10,21 @@ import os
 import urllib.request
 import urllib.error
 
-# Importation des modules protocolaires de NeoC
+# Importation des modules protocolaires et cryptographiques de NeoC
 try:
     from core.trust import compute_node_trust
     from core.transaction import process_neoc_transaction
     from core.funding import calculate_quadratic_funding
+    from core.identity import NeoCIdentity
 except ImportError:
     from trust import compute_node_trust
     from transaction import process_neoc_transaction
     from funding import calculate_quadratic_funding
+    from identity import NeoCIdentity
 
 
 class NeoCOrchestrator:
-    def __init__(self, storage_dir=None, local_url=None, model_name="gemma:2b", initial_base_pool=100000.0):
+    def __init__(self, storage_dir=None, local_url=None, model_name="gemma2:2b", initial_base_pool=100000.0):
         self.local_url = local_url or os.environ.get("NEOC_OLLAMA_URL", "http://localhost:11434/api/chat")
         self.model_name = model_name
         self.max_memory_len = 15
@@ -31,6 +33,10 @@ class NeoCOrchestrator:
         default_storage = os.path.join(os.path.expanduser("~"), ".neoc", "storage")
         self.storage_dir = storage_dir or os.environ.get("NEOC_STORAGE_DIR", default_storage)
         self.memory_file = os.path.join(self.storage_dir, "history.json")
+        
+        # Souveraineté cryptographique du nœud
+        self.identity = NeoCIdentity()
+        self.node_id = self.identity.get_public_key_bytes()
         
         # État du protocole monétaire et réseau NeoC
         self.base_pool = initial_base_pool
@@ -47,7 +53,43 @@ class NeoCOrchestrator:
         
         self.conversation_history = self._load_memory_from_storage()
 
-    # --- MÉTHODES DU PROTOCOLE NEOC ---
+    # --- MÉTHODES DE SOUVERAINETÉ CRYPTOGRAPHIQUE ---
+
+    def sign_transaction(self, tx_data: dict) -> dict:
+        """Signe cryptographiquement une transaction avec l'identité du nœud."""
+        # On retire la signature si elle existait déjà pour signer le payload brut
+        tx_data.pop("signature", None)
+        tx_data.pop("sender_public_key", None)
+        
+        msg = json.dumps(tx_data, sort_keys=True)
+        signature = self.identity.sign_message(msg)
+        
+        tx_data["sender_public_key"] = self.node_id
+        tx_data["signature"] = signature.hex()
+        return tx_data
+
+    @staticmethod
+    def verify_incoming_transaction(tx_data: dict) -> bool:
+        """Vérifie l'authenticité d'une transaction reçue d'un tiers."""
+        pub_key = tx_data.get("sender_public_key")
+        sig_hex = tx_data.get("signature")
+        
+        if not pub_key or not sig_hex:
+            return False
+            
+        # Recopie des données sans les champs de signature pour la vérification
+        clean_tx = dict(tx_data)
+        clean_tx.pop("signature", None)
+        clean_tx.pop("sender_public_key", None)
+        
+        msg = json.dumps(clean_tx, sort_keys=True)
+        try:
+            signature_bytes = bytes.fromhex(sig_hex)
+            return NeoCIdentity.verify_signature(pub_key, msg, signature_bytes)
+        except Exception:
+            return False
+
+    # --- MÉTHODES DU PROTOCOLE MONÉTAIRE ---
 
     def update_network_graph(self, graph_data: dict) -> dict:
         """Met à jour la topologie du réseau et calcule les scores de Trust."""
@@ -56,7 +98,11 @@ class NeoCOrchestrator:
         return self.trust_scores
 
     def process_transaction(self, raw_tx: dict) -> dict:
-        """Traite une transaction, applique le démurrage et alimente le pool du socle."""
+        """Traite une transaction, vérifie sa signature, applique le démurrage et alimente le socle."""
+        # Optionnel : rejet strict si la signature est invalide (sauf pour le bootstrap initial)
+        if "signature" in raw_tx and not self.verify_incoming_transaction(raw_tx):
+            return {"status": "error", "message": "Signature cryptographique invalide."}
+
         processed_tx, self.base_pool = process_neoc_transaction(raw_tx, self.base_pool)
         
         if processed_tx.get("type") == "QUADRATIC_FUNDING_CONTRIBUTION":
@@ -159,5 +205,5 @@ class NeoCOrchestrator:
                 "status": "error",
                 "intent": intent,
                 "error": str(e)
-        }
+    }
             
