@@ -25,10 +25,8 @@ def text_to_sdr(text, total_bits=128, active_bits=4):
     return bytes(sdr_bytes)
 
 def sdr_overlap(sdr1_bytes, sdr2_bytes):
-    """ Calcule le nombre de bits actifs en commun (Overlap) entre deux SDR """
     overlap = 0
     for b1, b2 in zip(sdr1_bytes, sdr2_bytes):
-        # Opération AND bit à bit + comptage des bits à 1 (bin().count('1'))
         overlap += bin(b1 & b2).count('1')
     return overlap
 
@@ -113,7 +111,6 @@ class ConceptLexicon:
         return self.id2word.get(node_id, f"Inconnu ({node_id})")
 
     def find_similar(self, db_file, target_word, top_k=3):
-        """ Recherche les concepts sur SSD ayant le plus grand overlap SDR avec target_word """
         target_sdr = text_to_sdr(target_word)
         scores = []
 
@@ -124,16 +121,16 @@ class ConceptLexicon:
             if node:
                 overlap = sdr_overlap(target_sdr, node[1])
                 if overlap > 0:
-                    scores.append((word, overlap))
+                    scores.append((nid, word, overlap))
 
-        scores.sort(key=lambda x: x[1], reverse=True)
+        scores.sort(key=lambda x: x[2], reverse=True)
         return scores[:top_k]
 
 # -----------------------------------------------------------------------------
-# REGISTRE DE TRAVAIL AVEC PROPAGATION ET RECONNAISSANCE SDR
+# REGISTRE DE TRAVAIL & MOTEUR D'INFÉRENCE/RÉSONANCE
 # -----------------------------------------------------------------------------
 class WorkingMemory:
-    def __init__(self, db_file, capacity=4, decay_rate=0.85):
+    def __init__(self, db_file, capacity=8, decay_rate=0.85):
         self.db_file = db_file
         self.capacity = capacity
         self.decay_rate = decay_rate
@@ -207,3 +204,29 @@ class WorkingMemory:
             
             tag = "Inhibition (Lien -)" if delta < 0 else "Excitation (Lien +)"
             print(f"[STDP] {tag} (Poids={new_weight:.2f}) : Nœud {parent_id} -> Nœud {child_id}")
+
+    def reason(self, lexicon, query_word, steps=2, damping=0.5, use_sdr=True):
+        """ Déclenche une boucle de résonance complète à partir d'un mot-clé """
+        # Réinitialisation des activations courantes
+        self.activations.clear()
+
+        if query_word not in lexicon.word2id:
+            return []
+
+        target_id = lexicon.word2id[query_word]
+        self.get_node(target_id, initial_energy=1.0)
+
+        # 1. Amorçage SDR (Activation par résonance sémantique)
+        if use_sdr:
+            matches = lexicon.find_similar(self.db_file, query_word, top_k=2)
+            for nid, w, overlap in matches:
+                sdr_energy = 0.2 * (overlap / 4.0)
+                self.get_node(nid, initial_energy=sdr_energy)
+
+        # 2. Propagation Causale
+        self.propagate(steps=steps, damping=damping)
+
+        # Trier les résultats par niveau d'énergie émergente
+        results = [(nid, lexicon.get_word(nid), act) for nid, act in self.activations.items() if act > 0.01]
+        results.sort(key=lambda x: x[2], reverse=True)
+        return results

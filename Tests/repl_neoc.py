@@ -7,7 +7,7 @@ def start_repl():
     lex_file = "lexicon.json"
 
     lexicon = ConceptLexicon(lex_file)
-    wm = WorkingMemory(db_file, capacity=4, decay_rate=0.85)
+    wm = WorkingMemory(db_file, capacity=8, decay_rate=0.85)
 
     print("==================================================")
     print("   NeoC Kernel - Interface d'Amorçage (REPL)")
@@ -16,6 +16,7 @@ def start_repl():
     print("  <mot>         : Active/crée un concept en mémoire de travail")
     print("  !learn <d>    : Excite le lien causal (delta > 0)")
     print("  !inhibit <d>  : Inhibe le lien causal (delta < 0)")
+    print("  !infer <m>    : Déclenche la boucle de résonance/raisonnement")
     print("  !similar <m>  : Cherche les concepts proches par overlap SDR")
     print("  !prop [s] [d] : Propage l'activation/inhibition")
     print("  !inspect <m>  : Affiche l'état d'un mot sur SSD")
@@ -43,6 +44,21 @@ def start_repl():
                 delta = float(parts[1]) if len(parts) > 1 else -1.0
                 wm.apply_plasticity(delta=-abs(delta))
 
+            elif user_input.startswith("!infer") or user_input.startswith("!think"):
+                parts = user_input.split()
+                if len(parts) > 1:
+                    query_word = parts[1].lower()
+                    print(f"\n[RÉSONANCE] Analyse cognitive pour '{query_word}'...")
+                    results = wm.reason(lexicon, query_word, steps=2, damping=0.6, use_sdr=True)
+                    if results:
+                        print("  Chaîne de résonance émergente :")
+                        for nid, word, energy in results:
+                            tag = "(Stimulus)" if word == query_word else "(Émergence)"
+                            print(f"    - [{energy:.2f}] {word} (ID {nid}) {tag}")
+                    else:
+                        print(f"  Aucune résonance trouvée pour '{query_word}'.")
+                    print()
+
             elif user_input.startswith("!similar"):
                 parts = user_input.split()
                 if len(parts) > 1:
@@ -50,7 +66,7 @@ def start_repl():
                     matches = lexicon.find_similar(db_file, word)
                     if matches:
                         print(f"  Proximité SDR pour '{word}' :")
-                        for match_word, score in matches:
+                        for nid, match_word, score in matches:
                             print(f"    - '{match_word}' : {score}/4 bits actifs partagés")
                     else:
                         print(f"  Aucune similarité SDR significative trouvée pour '{word}'.")
