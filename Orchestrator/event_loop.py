@@ -10,7 +10,6 @@ class NeoCOrchestrator:
         self.is_running = False
 
     def build_augmented_prompt(self, user_prompt, memory_context):
-        """ Assemble le contexte émergent de NeoC avec la demande de l'utilisateur """
         if not memory_context:
             return user_prompt
 
@@ -21,8 +20,17 @@ class NeoCOrchestrator:
         )
         return augmented
 
+    def apply_feedback(self, score):
+        """
+        Boucle de rétroaction (Feedback Loop) :
+        Ajuste la plasticité STDP de la mémoire de travail selon le signal de retour.
+        score > 0 : Renforcement (apprentissage)
+        score < 0 : Inhibition (correction)
+        """
+        print(f"\n[FEEDBACK] Application d'un signal de plasticité (Delta = {score:+.2f})...")
+        self.bridge.wm.apply_plasticity(delta=score)
+
     def process_turn(self, user_input):
-        """ Traite une boucle cognitive complète (Un tour de parole) """
         print(f"\n[ORCHESTRATEUR] Entrée reçue : '{user_input}'")
         
         # 1. Analyse et génération du contexte par résonance
@@ -35,18 +43,22 @@ class NeoCOrchestrator:
         print(final_prompt)
         print("--------------------------------------\n")
         
-        # 3. Mettre à jour la plasticité/apprentissage à partir des nouveaux mots de l'entrée
+        # 3. Enregistrement des nouveaux mots dans la mémoire de travail
         self.bridge.parse_input(user_input)
         
         return final_prompt
 
     def run_interactive(self):
-        """ Boucle d'écoute interactive """
         self.is_running = True
         print("==================================================")
-        print("   NeoC Orchestrator - Event Loop Active")
+        print("   NeoC Orchestrator - Event & Feedback Loop Active")
         print("==================================================")
-        print("Tape une phrase ou un mot-clé (ou '!quit' pour sortir).\n")
+        print("Commandes disponibles :")
+        print("  <mot/phrase>  : Traite l'entrée et affiche le prompt augmenté")
+        print("  !fb +         : Valide la chaîne (renforcement STDP +1.0)")
+        print("  !fb -         : Invalide la chaîne (inhibition STDP -1.0)")
+        print("  !fb <valeur>  : Applique un delta de rétroaction sur mesure")
+        print("  !quit         : Quitte la boucle d'événements\n")
 
         while self.is_running:
             try:
@@ -59,7 +71,22 @@ class NeoCOrchestrator:
                     self.is_running = False
                     break
 
-                self.process_turn(user_input)
+                elif user_input.startswith("!fb"):
+                    parts = user_input.split()
+                    if len(parts) > 1:
+                        val = parts[1]
+                        if val == "+":
+                            score = 1.0
+                        elif val == "-":
+                            score = -1.0
+                        else:
+                            score = float(val)
+                        self.apply_feedback(score)
+                    else:
+                        print("[FEEDBACK] Précisez '+' (-1.0 à +1.0).")
+
+                else:
+                    self.process_turn(user_input)
 
             except KeyboardInterrupt:
                 print("\nArrêt forcé du système.")
