@@ -31,7 +31,7 @@ def write_node(file_path, node_id, sdr_bytes, pointers, weight):
         packed_data = struct.pack(NODE_FORMAT, node_id, sdr_bytes, *pointers, weight)
         f.write(packed_data)
         f.flush()
-        os.fsync(f.fileno())  # Sécurité écriture SSD
+        os.fsync(f.fileno())
 
 def read_node(file_path, node_id):
     if not os.path.exists(file_path):
@@ -59,7 +59,7 @@ def add_causal_link(file_path, parent_id, child_id):
             break
             
     if not added:
-        print(f"[AVERTISSEMENT] Nœud {parent_id} : Capacité maximale de 4 pointeurs atteinte !")
+        print(f"[AVERTISSEMENT] Nœud {parent_id} : Capacité maximale atteinte !")
         return False
 
     write_node(file_path, parent_id, node[1], tuple(pointers), node[6])
@@ -105,7 +105,7 @@ class ConceptLexicon:
         return self.id2word.get(node_id, f"Inconnu ({node_id})")
 
 # -----------------------------------------------------------------------------
-# REGISTRE DE TRAVAIL AVEC PROPAGATION D'ACTIVATION
+# REGISTRE DE TRAVAIL AVEC EXCITATION ET INHIBITION
 # -----------------------------------------------------------------------------
 class WorkingMemory:
     def __init__(self, db_file, capacity=4, decay_rate=0.85):
@@ -114,7 +114,7 @@ class WorkingMemory:
         self.decay_rate = decay_rate
         self.slots = OrderedDict()
         self.eligibility_traces = {}
-        self.activations = {}  # Niveaux d'énergie des concepts
+        self.activations = {}
 
     def get_node(self, node_id, initial_energy=1.0):
         for nid in list(self.eligibility_traces.keys()):
@@ -123,7 +123,7 @@ class WorkingMemory:
                 del self.eligibility_traces[nid]
 
         self.eligibility_traces[node_id] = 1.0
-        self.activations[node_id] = self.activations.get(node_id, 0.0) + initial_energy
+        self.activations[node_id] = max(0.0, self.activations.get(node_id, 0.0) + initial_energy)
 
         if node_id in self.slots:
             self.slots.move_to_end(node_id)
@@ -139,12 +139,12 @@ class WorkingMemory:
         self.slots[node_id] = node
         return node
 
-    def propagate(self, steps=1, damping=0.5, threshold=0.1):
-        """ Propage l'énergie d'activation le long des pointeurs causaux """
+    def propagate(self, steps=1, damping=0.5, threshold=0.05):
+        """ Diffuse l'énergie d'activation ou d'inhibition """
         for step in range(steps):
             new_activations = self.activations.copy()
             for node_id, energy in list(self.activations.items()):
-                if energy < threshold:
+                if abs(energy) < threshold:
                     continue
 
                 node = read_node(self.db_file, node_id)
@@ -152,22 +152,25 @@ class WorkingMemory:
                     continue
 
                 pointers = [p for p in node[2:6] if p != 0]
-                weight = node[6]
+                weight = node[6]  # Poids positif (excitateur) ou négatif (inhibiteur)
                 
                 if pointers:
-                    # Divise l'énergie transmise entre les pointeurs sortants
-                    energy_per_pointer = (energy * damping * weight) / len(pointers)
+                    delta_energy = (energy * damping * weight) / len(pointers)
                     for child_id in pointers:
-                        new_activations[child_id] = new_activations.get(child_id, 0.0) + energy_per_pointer
-                        # Charge le nœud enfant en mémoire si l'énergie dépasse le seuil
-                        if child_id not in self.slots and energy_per_pointer >= threshold:
+                        current_val = new_activations.get(child_id, 0.0)
+                        # Si le poids est négatif, l'énergie est réduite (inhibition)
+                        updated_val = max(0.0, current_val + delta_energy)
+                        new_activations[child_id] = updated_val
+                        
+                        if child_id not in self.slots and updated_val >= threshold:
                             self.get_node(child_id, initial_energy=0.0)
 
             self.activations = new_activations
 
     def apply_plasticity(self, delta):
+        """ Delta positif = excitation (STDP+), Delta négatif = inhibition (STDP-) """
         active_ids = list(self.eligibility_traces.keys())
-        if len(active_ids) < 2 or delta <= 0:
+        if len(active_ids) < 2 or delta == 0:
             return
 
         parent_id = active_ids[-2]
@@ -176,6 +179,10 @@ class WorkingMemory:
         
         if add_causal_link(self.db_file, parent_id, child_id):
             updated_parent = read_node(self.db_file, parent_id)
-            new_weight = min(2.0, updated_parent[6] + (0.1 * delta * trace_factor))
+            current_weight = updated_parent[6]
+            # Borne le poids entre -2.0 (inhibition max) et +2.0 (excitation max)
+            new_weight = max(-2.0, min(2.0, current_weight + (0.1 * delta * trace_factor)))
             write_node(self.db_file, parent_id, updated_parent[1], updated_parent[2:6], new_weight)
-            print(f"[STDP] Lien renforcé (Trace={trace_factor:.2f}) : Nœud {parent_id} -> Nœud {child_id}")
+            
+            tag = "Inhibition (Lien -)" if delta < 0 else "Excitation (Lien +)"
+            print(f"[STDP] {tag} (Poids={new_weight:.2f}) : Nœud {parent_id} -> Nœud {child_id}")

@@ -14,9 +14,10 @@ def start_repl():
     print("==================================================")
     print("Commandes disponibles :")
     print("  <mot>         : Active/crée un concept en mémoire de travail")
-    print("  !learn <d>    : Déclenche la plasticité STDP")
-    print("  !prop [s] [d] : Propage l'activation (s=pas, d=atténuation)")
-    print("  !inspect <m>  : Affiche les liens et l'énergie d'un mot")
+    print("  !learn <d>    : Excite le lien causal (delta > 0)")
+    print("  !inhibit <d>  : Inhibe le lien causal (delta < 0, ex: !inhibit -1.0)")
+    print("  !prop [s] [d] : Propage l'activation/inhibition")
+    print("  !inspect <m>  : Affiche l'état d'un mot sur SSD")
     print("  !state        : Affiche l'état d'activation de la mémoire")
     print("  !quit         : Quitte l'interface")
     print("--------------------------------------------------\n")
@@ -35,6 +36,12 @@ def start_repl():
                 parts = user_input.split()
                 delta = float(parts[1]) if len(parts) > 1 else 1.0
                 wm.apply_plasticity(delta=delta)
+
+            elif user_input.startswith("!inhibit"):
+                parts = user_input.split()
+                delta = float(parts[1]) if len(parts) > 1 else -1.0
+                # Force le delta en valeur négative
+                wm.apply_plasticity(delta=-abs(delta))
 
             elif user_input.startswith("!prop"):
                 parts = user_input.split()
@@ -65,7 +72,7 @@ def start_repl():
                             linked_words = [lexicon.get_word(p) for p in ptrs if p != 0]
                             act = wm.activations.get(node_id, 0.0)
                             print(f"  [DISQUE] Nœud {node_id} ('{word}')")
-                            print(f"  Poids : {node[6]:.2f} | Énergie RAM : {act:.2f}")
+                            print(f"  Poids du nœud : {node[6]:.2f} | Énergie RAM : {act:.2f}")
                             print(f"  Pointeurs bruts : {ptrs}")
                             print(f"  Liens causaux actifs : {linked_words if linked_words else 'Aucun'}")
                     else:
