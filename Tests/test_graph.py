@@ -30,6 +30,8 @@ def write_node(file_path, node_id, sdr_bytes, pointers, weight):
         f.seek(node_id * NODE_SIZE)
         packed_data = struct.pack(NODE_FORMAT, node_id, sdr_bytes, *pointers, weight)
         f.write(packed_data)
+        f.flush()
+        os.fsync(f.fileno())  # Sécurité écriture SSD
 
 def read_node(file_path, node_id):
     if not os.path.exists(file_path):
@@ -46,11 +48,20 @@ def add_causal_link(file_path, parent_id, child_id):
     if not node:
         return False
     pointers = list(node[2:6])
-    if child_id not in pointers:
-        for i in range(4):
-            if pointers[i] == 0:
-                pointers[i] = child_id
-                break
+    if child_id in pointers:
+        return True  # Déjà relié
+    
+    added = False
+    for i in range(4):
+        if pointers[i] == 0 and child_id != 0:
+            pointers[i] = child_id
+            added = True
+            break
+            
+    if not added:
+        print(f"[AVERTISSEMENT] Nœud {parent_id} : Capacité maximale de 4 pointeurs atteinte !")
+        return False
+
     write_node(file_path, parent_id, node[1], tuple(pointers), node[6])
     return True
 
@@ -94,16 +105,21 @@ class ConceptLexicon:
         return self.id2word.get(node_id, f"Inconnu ({node_id})")
 
 # -----------------------------------------------------------------------------
-# REGISTRE DE TRAVAIL
+# REGISTRE DE TRAVAIL AVEC DECAY
 # -----------------------------------------------------------------------------
 class WorkingMemory:
-    def __init__(self, db_file, capacity=4):
+    def __init__(self, db_file, capacity=4, decay_rate=0.85):
         self.db_file = db_file
         self.capacity = capacity
+        self.decay_rate = decay_rate
         self.slots = OrderedDict()
         self.eligibility_traces = {}
 
     def get_node(self, node_id):
+        # Application du decay temporel sur les traces existantes
+        for nid in self.eligibility_traces:
+            self.eligibility_traces[nid] *= self.decay_rate
+
         self.eligibility_traces[node_id] = 1.0
 
         if node_id in self.slots:
@@ -128,34 +144,33 @@ class WorkingMemory:
         parent_id = active_ids[-2]
         child_id = active_ids[-1]
         
-        add_causal_link(self.db_file, parent_id, child_id)
-        updated_parent = read_node(self.db_file, parent_id)
-        new_weight = min(2.0, updated_parent[6] + (0.1 * delta))
-        write_node(self.db_file, parent_id, updated_parent[1], updated_parent[2:6], new_weight)
+        # Le renforcement prend en compte l'intensité de la trace résiduelle
+        trace_factor = self.eligibility_traces.get(parent_id, 1.0)
         
-        print(f"[STDP] Lien préservé sur SSD : Nœud {parent_id} -> Nœud {child_id}")
+        if add_causal_link(self.db_file, parent_id, child_id):
+            updated_parent = read_node(self.db_file, parent_id)
+            new_weight = min(2.0, updated_parent[6] + (0.1 * delta * trace_factor))
+            write_node(self.db_file, parent_id, updated_parent[1], updated_parent[2:6], new_weight)
+            print(f"[STDP] Lien renforcé (Trace={trace_factor:.2f}) : Nœud {parent_id} -> Nœud {child_id}")
 
-# --- TEST DE PERSISTANCE CONTINUE ---
+# --- TEST DE PERSISTANCE ET STDP AMÉLIORÉE ---
 if __name__ == "__main__":
     db_file = "neoc_graph.bin"
     lex_file = "lexicon.json"
 
     lexicon = ConceptLexicon(lex_file)
-    wm = WorkingMemory(db_file, capacity=4)
+    wm = WorkingMemory(db_file, capacity=4, decay_rate=0.85)
 
-    print("--- ÉTAT ACTUEL DE LA BASE DE CONNAISSANCES ---")
-    print(f"Nombre de concepts en mémoire persistante : {len(lexicon.word2id)}")
-    for wid, wtext in lexicon.id2word.items():
-        n = read_node(db_file, wid)
-        ptrs = n[2:6] if n else ()
-        print(f" - ID {wid} ('{wtext}') -> Pointe vers : {ptrs}")
+    print("--- ÉTAT ACTUEL DU KERNEL ---")
+    print(f"Concepts répertoriés : {len(lexicon.word2id)}")
 
-    print("\n--- AJOUT D'UNE NOUVELLE SÉQUENCE SANS EFFACER L'ANCIENNE ---")
-    # On ajoute deux nouveaux concepts
-    id_a = lexicon.get_or_create_id("chaleur", db_file)
-    id_b = lexicon.get_or_create_id("fumée", db_file)
+    id_a = lexicon.get_or_create_id("étincelle", db_file)
+    id_b = lexicon.get_or_create_id("chaleur", db_file)
+    id_c = lexicon.get_or_create_id("feu", db_file)
 
     wm.get_node(id_a)
     wm.get_node(id_b)
     wm.apply_plasticity(delta=1.0)
-EOF
+
+    wm.get_node(id_c)
+    wm.apply_plasticity(delta=1.0)
