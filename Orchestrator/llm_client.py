@@ -8,7 +8,7 @@ class OllamaClient:
         self.host = host
         self.endpoint = f"{self.host}/api/generate"
 
-    def generate(self, prompt, timeout=30):
+    def generate(self, prompt, timeout=120):
         """ Envoie le prompt augmenté à Ollama et retourne la réponse texte """
         payload = {
             "model": self.model_name,
@@ -30,7 +30,7 @@ class OllamaClient:
                     result = json.loads(response.read().decode('utf-8'))
                     return result.get("response", "").strip()
         except urllib.error.URLError:
-            return "[MODE FALLBACK] Ollama inaccessible sur localhost:11434. Modèle simulé : Réception du contexte NeoC validée."
+            return "[MODE FALLBACK] Ollama inaccessible sur localhost:11434."
         except Exception as e:
             return f"[ERREUR LLM] : {str(e)}"
 
