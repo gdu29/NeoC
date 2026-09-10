@@ -24,6 +24,14 @@ def text_to_sdr(text, total_bits=128, active_bits=4):
         
     return bytes(sdr_bytes)
 
+def sdr_overlap(sdr1_bytes, sdr2_bytes):
+    """ Calcule le nombre de bits actifs en commun (Overlap) entre deux SDR """
+    overlap = 0
+    for b1, b2 in zip(sdr1_bytes, sdr2_bytes):
+        # Opération AND bit à bit + comptage des bits à 1 (bin().count('1'))
+        overlap += bin(b1 & b2).count('1')
+    return overlap
+
 def write_node(file_path, node_id, sdr_bytes, pointers, weight):
     mode = "r+b" if os.path.exists(file_path) else "w+b"
     with open(file_path, mode) as f:
@@ -104,8 +112,25 @@ class ConceptLexicon:
     def get_word(self, node_id):
         return self.id2word.get(node_id, f"Inconnu ({node_id})")
 
+    def find_similar(self, db_file, target_word, top_k=3):
+        """ Recherche les concepts sur SSD ayant le plus grand overlap SDR avec target_word """
+        target_sdr = text_to_sdr(target_word)
+        scores = []
+
+        for word, nid in self.word2id.items():
+            if word == target_word.lower():
+                continue
+            node = read_node(db_file, nid)
+            if node:
+                overlap = sdr_overlap(target_sdr, node[1])
+                if overlap > 0:
+                    scores.append((word, overlap))
+
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return scores[:top_k]
+
 # -----------------------------------------------------------------------------
-# REGISTRE DE TRAVAIL AVEC EXCITATION ET INHIBITION
+# REGISTRE DE TRAVAIL AVEC PROPAGATION ET RECONNAISSANCE SDR
 # -----------------------------------------------------------------------------
 class WorkingMemory:
     def __init__(self, db_file, capacity=4, decay_rate=0.85):
@@ -140,7 +165,6 @@ class WorkingMemory:
         return node
 
     def propagate(self, steps=1, damping=0.5, threshold=0.05):
-        """ Diffuse l'énergie d'activation ou d'inhibition """
         for step in range(steps):
             new_activations = self.activations.copy()
             for node_id, energy in list(self.activations.items()):
@@ -152,13 +176,12 @@ class WorkingMemory:
                     continue
 
                 pointers = [p for p in node[2:6] if p != 0]
-                weight = node[6]  # Poids positif (excitateur) ou négatif (inhibiteur)
+                weight = node[6]
                 
                 if pointers:
                     delta_energy = (energy * damping * weight) / len(pointers)
                     for child_id in pointers:
                         current_val = new_activations.get(child_id, 0.0)
-                        # Si le poids est négatif, l'énergie est réduite (inhibition)
                         updated_val = max(0.0, current_val + delta_energy)
                         new_activations[child_id] = updated_val
                         
@@ -168,7 +191,6 @@ class WorkingMemory:
             self.activations = new_activations
 
     def apply_plasticity(self, delta):
-        """ Delta positif = excitation (STDP+), Delta négatif = inhibition (STDP-) """
         active_ids = list(self.eligibility_traces.keys())
         if len(active_ids) < 2 or delta == 0:
             return
@@ -180,7 +202,6 @@ class WorkingMemory:
         if add_causal_link(self.db_file, parent_id, child_id):
             updated_parent = read_node(self.db_file, parent_id)
             current_weight = updated_parent[6]
-            # Borne le poids entre -2.0 (inhibition max) et +2.0 (excitation max)
             new_weight = max(-2.0, min(2.0, current_weight + (0.1 * delta * trace_factor)))
             write_node(self.db_file, parent_id, updated_parent[1], updated_parent[2:6], new_weight)
             
