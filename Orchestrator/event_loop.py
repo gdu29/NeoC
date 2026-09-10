@@ -3,10 +3,12 @@ import os
 import time
 
 from io_bridge import NeoCBridge
+from llm_client import OllamaClient
 
 class NeoCOrchestrator:
-    def __init__(self, db_file="neoc_graph.bin", lex_file="lexicon.json"):
+    def __init__(self, db_file="neoc_graph.bin", lex_file="lexicon.json", model_name="gemma:2b"):
         self.bridge = NeoCBridge(db_file=db_file, lex_file=lex_file)
+        self.llm = OllamaClient(model_name=model_name)
         self.is_running = False
 
     def build_augmented_prompt(self, user_prompt, memory_context):
@@ -16,17 +18,11 @@ class NeoCOrchestrator:
         augmented = (
             f"{memory_context}\n\n"
             f"[USER_PROMPT]\n{user_prompt}\n"
-            f"[INSTRUCTION] Réponds en tenant compte du contexte de mémoire associative ci-dessus."
+            f"[INSTRUCTION] Réponds de manière concise en tenant compte du contexte de mémoire associative ci-dessus."
         )
         return augmented
 
     def apply_feedback(self, score):
-        """
-        Boucle de rétroaction (Feedback Loop) :
-        Ajuste la plasticité STDP de la mémoire de travail selon le signal de retour.
-        score > 0 : Renforcement (apprentissage)
-        score < 0 : Inhibition (correction)
-        """
         print(f"\n[FEEDBACK] Application d'un signal de plasticité (Delta = {score:+.2f})...")
         self.bridge.wm.apply_plasticity(delta=score)
 
@@ -41,23 +37,28 @@ class NeoCOrchestrator:
         
         print("\n--- PROMPT ENRICHI TRANSMIS AU LLM ---")
         print(final_prompt)
-        print("--------------------------------------\n")
+        print("--------------------------------------")
         
-        # 3. Enregistrement des nouveaux mots dans la mémoire de travail
+        # 3. Interrogation du backend LLM (Ollama/Gemma)
+        print("\n[LLM] Génération de la réponse en cours...")
+        llm_response = self.llm.generate(final_prompt)
+        print(f"\n[REPONSE NEO-C] :\n{llm_response}\n")
+        
+        # 4. Enregistrement des mots du prompt et de la réponse dans la mémoire de travail
         self.bridge.parse_input(user_input)
+        self.bridge.parse_input(llm_response)
         
-        return final_prompt
+        return llm_response
 
     def run_interactive(self):
         self.is_running = True
         print("==================================================")
-        print("   NeoC Orchestrator - Event & Feedback Loop Active")
+        print("   NeoC Orchestrator - Full Dynamic Loop Active")
         print("==================================================")
         print("Commandes disponibles :")
-        print("  <mot/phrase>  : Traite l'entrée et affiche le prompt augmenté")
+        print("  <mot/phrase>  : Génère une réponse via NeoC Kernel + Ollama")
         print("  !fb +         : Valide la chaîne (renforcement STDP +1.0)")
         print("  !fb -         : Invalide la chaîne (inhibition STDP -1.0)")
-        print("  !fb <valeur>  : Applique un delta de rétroaction sur mesure")
         print("  !quit         : Quitte la boucle d'événements\n")
 
         while self.is_running:
@@ -75,15 +76,10 @@ class NeoCOrchestrator:
                     parts = user_input.split()
                     if len(parts) > 1:
                         val = parts[1]
-                        if val == "+":
-                            score = 1.0
-                        elif val == "-":
-                            score = -1.0
-                        else:
-                            score = float(val)
+                        score = 1.0 if val == "+" else (-1.0 if val == "-" else float(val))
                         self.apply_feedback(score)
                     else:
-                        print("[FEEDBACK] Précisez '+' (-1.0 à +1.0).")
+                        print("[FEEDBACK] Précisez '+' ou '-'.")
 
                 else:
                     self.process_turn(user_input)
