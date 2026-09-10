@@ -49,7 +49,7 @@ def add_causal_link(file_path, parent_id, child_id):
         return False
     pointers = list(node[2:6])
     if child_id in pointers:
-        return True  # Déjà relié
+        return True
     
     added = False
     for i in range(4):
@@ -105,7 +105,7 @@ class ConceptLexicon:
         return self.id2word.get(node_id, f"Inconnu ({node_id})")
 
 # -----------------------------------------------------------------------------
-# REGISTRE DE TRAVAIL AVEC DECAY
+# REGISTRE DE TRAVAIL AVEC PROPAGATION D'ACTIVATION
 # -----------------------------------------------------------------------------
 class WorkingMemory:
     def __init__(self, db_file, capacity=4, decay_rate=0.85):
@@ -114,13 +114,16 @@ class WorkingMemory:
         self.decay_rate = decay_rate
         self.slots = OrderedDict()
         self.eligibility_traces = {}
+        self.activations = {}  # Niveaux d'énergie des concepts
 
-    def get_node(self, node_id):
-        # Application du decay temporel sur les traces existantes
-        for nid in self.eligibility_traces:
+    def get_node(self, node_id, initial_energy=1.0):
+        for nid in list(self.eligibility_traces.keys()):
             self.eligibility_traces[nid] *= self.decay_rate
+            if self.eligibility_traces[nid] < 0.05:
+                del self.eligibility_traces[nid]
 
         self.eligibility_traces[node_id] = 1.0
+        self.activations[node_id] = self.activations.get(node_id, 0.0) + initial_energy
 
         if node_id in self.slots:
             self.slots.move_to_end(node_id)
@@ -136,6 +139,32 @@ class WorkingMemory:
         self.slots[node_id] = node
         return node
 
+    def propagate(self, steps=1, damping=0.5, threshold=0.1):
+        """ Propage l'énergie d'activation le long des pointeurs causaux """
+        for step in range(steps):
+            new_activations = self.activations.copy()
+            for node_id, energy in list(self.activations.items()):
+                if energy < threshold:
+                    continue
+
+                node = read_node(self.db_file, node_id)
+                if not node:
+                    continue
+
+                pointers = [p for p in node[2:6] if p != 0]
+                weight = node[6]
+                
+                if pointers:
+                    # Divise l'énergie transmise entre les pointeurs sortants
+                    energy_per_pointer = (energy * damping * weight) / len(pointers)
+                    for child_id in pointers:
+                        new_activations[child_id] = new_activations.get(child_id, 0.0) + energy_per_pointer
+                        # Charge le nœud enfant en mémoire si l'énergie dépasse le seuil
+                        if child_id not in self.slots and energy_per_pointer >= threshold:
+                            self.get_node(child_id, initial_energy=0.0)
+
+            self.activations = new_activations
+
     def apply_plasticity(self, delta):
         active_ids = list(self.eligibility_traces.keys())
         if len(active_ids) < 2 or delta <= 0:
@@ -143,8 +172,6 @@ class WorkingMemory:
 
         parent_id = active_ids[-2]
         child_id = active_ids[-1]
-        
-        # Le renforcement prend en compte l'intensité de la trace résiduelle
         trace_factor = self.eligibility_traces.get(parent_id, 1.0)
         
         if add_causal_link(self.db_file, parent_id, child_id):
@@ -152,25 +179,3 @@ class WorkingMemory:
             new_weight = min(2.0, updated_parent[6] + (0.1 * delta * trace_factor))
             write_node(self.db_file, parent_id, updated_parent[1], updated_parent[2:6], new_weight)
             print(f"[STDP] Lien renforcé (Trace={trace_factor:.2f}) : Nœud {parent_id} -> Nœud {child_id}")
-
-# --- TEST DE PERSISTANCE ET STDP AMÉLIORÉE ---
-if __name__ == "__main__":
-    db_file = "neoc_graph.bin"
-    lex_file = "lexicon.json"
-
-    lexicon = ConceptLexicon(lex_file)
-    wm = WorkingMemory(db_file, capacity=4, decay_rate=0.85)
-
-    print("--- ÉTAT ACTUEL DU KERNEL ---")
-    print(f"Concepts répertoriés : {len(lexicon.word2id)}")
-
-    id_a = lexicon.get_or_create_id("étincelle", db_file)
-    id_b = lexicon.get_or_create_id("chaleur", db_file)
-    id_c = lexicon.get_or_create_id("feu", db_file)
-
-    wm.get_node(id_a)
-    wm.get_node(id_b)
-    wm.apply_plasticity(delta=1.0)
-
-    wm.get_node(id_c)
-    wm.apply_plasticity(delta=1.0)

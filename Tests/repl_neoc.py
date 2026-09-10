@@ -13,10 +13,12 @@ def start_repl():
     print("   NeoC Kernel - Interface d'Amorçage (REPL)")
     print("==================================================")
     print("Commandes disponibles :")
-    print("  <mot>       : Active/crée un concept en mémoire de travail")
-    print("  !learn <d>  : Déclenche la plasticité avec le signal delta")
-    print("  !inspect <m>: Affiche les liens causaux d'un mot sur le SSD")
-    print("  !quit       : Quitte l'interface")
+    print("  <mot>         : Active/crée un concept en mémoire de travail")
+    print("  !learn <d>    : Déclenche la plasticité STDP")
+    print("  !prop [s] [d] : Propage l'activation (s=pas, d=atténuation)")
+    print("  !inspect <m>  : Affiche les liens et l'énergie d'un mot")
+    print("  !state        : Affiche l'état d'activation de la mémoire")
+    print("  !quit         : Quitte l'interface")
     print("--------------------------------------------------\n")
 
     while True:
@@ -34,6 +36,23 @@ def start_repl():
                 delta = float(parts[1]) if len(parts) > 1 else 1.0
                 wm.apply_plasticity(delta=delta)
 
+            elif user_input.startswith("!prop"):
+                parts = user_input.split()
+                steps = int(parts[1]) if len(parts) > 1 else 1
+                damping = float(parts[2]) if len(parts) > 2 else 0.5
+                wm.propagate(steps=steps, damping=damping)
+                print(f"[PROPAGATION] Diffusée sur {steps} pas (dégât={damping}).")
+                print("  Activations actuelles :")
+                for nid, act in wm.activations.items():
+                    print(f"    - {lexicon.get_word(nid)} (ID {nid}) : {act:.2f}")
+
+            elif user_input == "!state":
+                print("  Mémoire active (RAM) :")
+                for nid in wm.slots:
+                    act = wm.activations.get(nid, 0.0)
+                    trace = wm.eligibility_traces.get(nid, 0.0)
+                    print(f"    - {lexicon.get_word(nid)} (ID {nid}) | Énergie: {act:.2f} | Trace STDP: {trace:.2f}")
+
             elif user_input.startswith("!inspect"):
                 parts = user_input.split()
                 if len(parts) > 1:
@@ -43,10 +62,10 @@ def start_repl():
                         node = read_node(db_file, node_id)
                         if node:
                             ptrs = node[2:6]
-                            # Filtrage strict : 0 est un slot vide sauf si le parent pointe explicitement vers l'ID 0
                             linked_words = [lexicon.get_word(p) for p in ptrs if p != 0]
+                            act = wm.activations.get(node_id, 0.0)
                             print(f"  [DISQUE] Nœud {node_id} ('{word}')")
-                            print(f"  Poids : {node[6]:.2f}")
+                            print(f"  Poids : {node[6]:.2f} | Énergie RAM : {act:.2f}")
                             print(f"  Pointeurs bruts : {ptrs}")
                             print(f"  Liens causaux actifs : {linked_words if linked_words else 'Aucun'}")
                     else:
