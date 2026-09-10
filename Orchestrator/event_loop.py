@@ -18,7 +18,7 @@ class NeoCOrchestrator:
         augmented = (
             f"{memory_context}\n\n"
             f"[USER_PROMPT]\n{user_prompt}\n"
-            f"[INSTRUCTION] Réponds de manière concise en tenant compte du contexte de mémoire associative ci-dessus."
+            f"[INSTRUCTION STRICTE] Réponds de manière ultra-concise (1 à 2 phrases max) en reliant directement la demande au contexte de mémoire ci-dessus. Pas de mise en page complexe ni de listes."
         )
         return augmented
 
@@ -39,12 +39,12 @@ class NeoCOrchestrator:
         print(final_prompt)
         print("--------------------------------------")
         
-        # 3. Interrogation du backend LLM (Ollama/Gemma)
+        # 3. Interrogation du backend LLM
         print("\n[LLM] Génération de la réponse en cours...")
         llm_response = self.llm.generate(final_prompt)
         print(f"\n[REPONSE NEO-C] :\n{llm_response}\n")
         
-        # 4. Enregistrement des mots du prompt et de la réponse dans la mémoire de travail
+        # 4. Enregistrement sélectif des mots clés du prompt et de la réponse
         self.bridge.parse_input(user_input)
         self.bridge.parse_input(llm_response)
         
@@ -53,7 +53,7 @@ class NeoCOrchestrator:
     def run_interactive(self):
         self.is_running = True
         print("==================================================")
-        print("   NeoC Orchestrator - Full Dynamic Loop Active")
+        print("   NeoC Orchestrator - Concise Dynamic Loop Active")
         print("==================================================")
         print("Commandes disponibles :")
         print("  <mot/phrase>  : Génère une réponse via NeoC Kernel + Ollama")

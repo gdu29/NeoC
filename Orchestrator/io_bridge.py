@@ -4,11 +4,21 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../Tests')))
 from test_graph import ConceptLexicon, WorkingMemory
 
-# Mots de structure à ignorer pour ne pas polluer le graphe sémantique
+# Stop-words étendus : grammaire, pronoms, adverbes et termes techniques résiduels
 STOP_WORDS = {
-    "le", "la", "les", "un", "une", "des", "du", "de", "d", "l", "et", "ou", 
-    "est", "sont", "pour", "par", "sur", "dans", "avec", "qui", "que", "quoi",
-    "mode", "fallback", "timed", "out", "erreur", "llm"
+    # Articles & Déterminants
+    "le", "la", "les", "un", "une", "des", "du", "de", "d", "l", "ce", "cette", "ces", "mon", "ton", "son",
+    # Prépositions & Conjonctions
+    "et", "ou", "mais", "donc", "or", "ni", "car", "pour", "par", "sur", "dans", "avec", "sans", "sous", "vers", "entre",
+    # Pronoms
+    "il", "elle", "ils", "elles", "on", "nous", "vous", "je", "tu", "me", "te", "se", "lui", "leur", "y", "en",
+    "qui", "que", "quoi", "dont", "où", "cela", "ceci", "cela", "autre", "autres", "certains", "tels", "telles",
+    # Verbes d'état & Auxiliaires
+    "est", "sont", "ete", "etre", "avoir", "a", "ont", "fait", "faire", "peut", "peuvent",
+    # Adverbes & Mots de liaison
+    "plus", "moins", "tres", "bien", "aussi", "encore", "lorsque", "quand", "comme", "quant", "ainsi", "toujours",
+    # Scories système
+    "mode", "fallback", "timed", "out", "erreur", "llm", "soutien", "processus"
 }
 
 class NeoCBridge:
