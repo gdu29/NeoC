@@ -2,10 +2,13 @@ import sys
 import os
 import time
 
-from io_bridge import NeoCBridge
-from llm_client import OllamaClient
+from CORE.MEMORY.bridge import NeoCBridge
+from CORE.llm_client import OllamaClient
 
-class NeoCOrchestrator:
+class NeoCEventLoop:
+    """Boucle interactive basée sur la mémoire graph + Ollama.
+    Distinct de NeoCOrchestrator (protocole crypto / API).
+    """
     def __init__(self, db_file="neoc_graph.bin", lex_file="lexicon.json", model_name="gemma:2b"):
         self.bridge = NeoCBridge(db_file=db_file, lex_file=lex_file)
         self.llm = OllamaClient(model_name=model_name)
@@ -53,7 +56,7 @@ class NeoCOrchestrator:
     def run_interactive(self):
         self.is_running = True
         print("==================================================")
-        print("   NeoC Orchestrator - Concise Dynamic Loop Active")
+        print("   NeoC Event Loop - Concise Dynamic Loop Active")
         print("==================================================")
         print("Commandes disponibles :")
         print("  <mot/phrase>  : Génère une réponse via NeoC Kernel + Ollama")
@@ -91,5 +94,5 @@ class NeoCOrchestrator:
                 print(f"[ERREUR LOOP] : {e}")
 
 if __name__ == "__main__":
-    orchestrator = NeoCOrchestrator()
-    orchestrator.run_interactive()
+    loop = NeoCEventLoop()
+    loop.run_interactive()
