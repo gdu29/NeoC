@@ -1,8 +1,4 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../Tests')))
-from test_graph import ConceptLexicon, WorkingMemory
+from .graph import ConceptLexicon, WorkingMemory
 
 # Stop-words étendus : grammaire, pronoms, adverbes et termes techniques résiduels
 STOP_WORDS = {
