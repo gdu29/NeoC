@@ -62,7 +62,7 @@ class NeoCOrchestrator:
         self.max_memory_len = 15
 
         # Chemins de stockage (OS-agnostiques)
-        default_storage = os.path.join(os.path.expanduser("\~"), ".neoc", "storage")
+        default_storage = ".neoc_storage"
         self.storage_dir = storage_dir or os.environ.get("NEOC_STORAGE_DIR", default_storage)
         self.memory_file = os.path.join(self.storage_dir, "history.json")
 
