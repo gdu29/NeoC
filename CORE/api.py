@@ -5,15 +5,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Imports des modules internes du CORE NeoC (adaptés à la structure CORE/MEMORY/graph.py)
+# Imports des modules internes du CORE NeoC (Pointés vers CORE.MEMORY.bridge)
 try:
     from CORE.orchestrator import NeoCOrchestrator
-    from CORE.MEMORY.graph import NeoCBridge
+    from CORE.MEMORY.bridge import NeoCBridge
     from CORE.equity_constraint import equity_eval
 except ImportError:
-    # Alternative si le script est exécuté directement depuis le dossier CORE
+    # Alternative si exécuté directement depuis le dossier CORE
     from orchestrator import NeoCOrchestrator
-    from MEMORY.graph import NeoCBridge
+    from MEMORY.bridge import NeoCBridge
     from equity_constraint import equity_eval
 
 app = FastAPI(
@@ -83,15 +83,15 @@ async def feedback_endpoint(payload: FeedbackPayload):
         raise HTTPException(status_code=400, detail="La valeur de feedback doit être 1 ou -1.")
 
     try:
-        # Mise à jour du poids du nœud dans le graphe de mémoire
-        updated = memory_bridge.apply_feedback(node_id=payload.node_id, value=payload.value)
+        # Mise à jour de la mémoire via la mémoire de travail de NeoCBridge
+        memory_bridge.wm.apply_plasticity(delta=payload.value)
         return {
             "status": "success",
             "node_id": payload.node_id,
-            "updated_weight": updated
+            "feedback_applied": payload.value
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur de mise à jour mémoire : {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de plasticité mémoire : {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
