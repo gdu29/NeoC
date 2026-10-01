@@ -42,13 +42,8 @@ if not os.path.exists(STATIC_DIR):
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Initialisation des composants sans argument incompatible
-memory_bridge = NeoCBridge()
+# Initialisation de l'orchestrateur
 orchestrator = NeoCOrchestrator()
-
-# Injection si l'attribut existe sur la classe
-if hasattr(orchestrator, "memory_bridge"):
-    orchestrator.memory_bridge = memory_bridge
 
 # Modèles de données Pydantic
 class ChatPayload(BaseModel):
@@ -73,25 +68,15 @@ async def chat_endpoint(payload: ChatPayload):
         raise HTTPException(status_code=400, detail="Le message ne peut pas être vide.")
 
     try:
-        # Prise en compte asynchrone / synchrone de process_input
-        if hasattr(orchestrator, "process_input"):
-            import asyncio
-            if asyncio.iscoroutinefunction(orchestrator.process_input):
-                response_data = await orchestrator.process_input(user_text)
-            else:
-                response_data = orchestrator.process_input(user_text)
-        else:
-            response_data = {"text": "Orchestrateur prêt", "node_id": "node_default"}
+        # Appel du vrai routeur cognitif (execute_protocol)
+        result = orchestrator.execute_protocol(user_text)
         
-        # Extraction sécurisée des données
-        if isinstance(response_data, dict):
-            raw_response = response_data.get("text", str(response_data))
-            node_id = response_data.get("node_id", "node_default")
+        if result.get("status") == "error":
+            raw_response = f"Erreur Ollama / LLM : {result.get('error')}"
         else:
-            raw_response = str(response_data)
-            node_id = "node_default"
-        
-        # Traçabilité et vérification d'équité
+            raw_response = result.get("response", "Pas de réponse générée.")
+
+        node_id = "node_default"
         equity_meta = equity_eval(user_text, raw_response)
 
         return {
@@ -109,7 +94,7 @@ async def feedback_endpoint(payload: FeedbackPayload):
         raise HTTPException(status_code=400, detail="La valeur de feedback doit être 1 ou -1.")
 
     try:
-        memory_bridge.wm.apply_plasticity(delta=payload.value)
+        orchestrator.apply_memory_feedback(float(payload.value))
         return {
             "status": "success",
             "node_id": payload.node_id,
@@ -120,4 +105,4 @@ async def feedback_endpoint(payload: FeedbackPayload):
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
-        
+    
