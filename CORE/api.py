@@ -5,15 +5,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Imports des modules internes du CORE NeoC
+# Imports des modules internes du CORE NeoC (adaptés à la structure CORE/MEMORY/graph.py)
 try:
     from CORE.orchestrator import NeoCOrchestrator
-    from CORE.memory_graph import NeoCBridge
+    from CORE.MEMORY.graph import NeoCBridge
     from CORE.equity_constraint import equity_eval
 except ImportError:
-    # Alternative si exécuté directement depuis le dossier CORE
+    # Alternative si le script est exécuté directement depuis le dossier CORE
     from orchestrator import NeoCOrchestrator
-    from memory_graph import NeoCBridge
+    from MEMORY.graph import NeoCBridge
     from equity_constraint import equity_eval
 
 app = FastAPI(
