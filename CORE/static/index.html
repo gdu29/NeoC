@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoC Core Node ⚓🌐♻️</title>
+    <style>
+        :root {
+            --bg-color: #0f111a;
+            --card-bg: #1a1d2e;
+            --accent-color: #00ffcc;
+            --text-color: #e0e6ed;
+            --user-color: #4da6ff;
+            --border-color: #2a2f4c;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .message.user {
+            color: var(--user-color);
+        }
+
+        .message.bot {
+            color: var(--text-color);
+            border-left: 3px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        .meta-info {
+            font-size: 0.75rem;
+            color: #7a8b9e;
+            margin-top: 5px;
+        }
+
+        .feedback-actions {
+            margin-top: 5px;
+        }
+
+        .btn-fb {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 2px 8px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .btn-fb:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 12px;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        button.send-btn {
+            background: var(--accent-color);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button.send-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>NeoC Core Node ⚓🌐♻️</h1>
+        <span style="font-size: 0.8rem; color: #7a8b9e;">Souveraineté Locale & Mémoire Graph</span>
+    </header>
+
+    <div id="chat-container"></div>
+
+    <div class="input-group">
+        <input type="text" id="user-input" placeholder="Transmettre une intention au nœud..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" onclick="sendMessage()">Émettre</button>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatContainer = document.getElementById('chat-container');
+
+            // Affichage du message utilisateur
+            chatContainer.innerHTML += `
+                <div class="message user">
+                    <b>&gt; CONSCIENCE:</b> ${escapeHtml(message)}
+                </div>
+            `;
+            input.value = '';
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const node_id = data.node_id;
+                    const equity = data.equity || {};
+
+                    chatContainer.innerHTML += `
+                        <div class="message bot">
+                            <b>&gt; NeoC:</b> ${escapeHtml(data.response)}
+                            <div class="meta-info">
+                                Nœud Mémoire: ${node_id} | Traçabilité: ${equity.traceability || 'N/A'}
+                            </div>
+                            <div class="feedback-actions">
+                                <button class="btn-fb" onclick="sendFeedback('${node_id}', 1)">Ancrer (+1)</button>
+                                <button class="btn-fb" onclick="sendFeedback('${node_id}', -1)">Dissiper (-1)</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    chatContainer.innerHTML += `<div class="message bot" style="color: #ff5555;">[Erreur API: ${data.detail}]</div>`;
+                }
+            } catch (err) {
+                chatContainer.innerHTML += `<div class="message bot" style="color: #ff5555;">[Rupture de liaison avec le nœud local]</div>`;
+            }
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendFeedback(nodeId, val) {
+            try {
+                const res = await fetch('/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: nodeId, value: val })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Poids mémoire ajusté (${data.updated_weight}) pour le nœud : ${nodeId}`);
+                }
+            } catch (e) {
+                console.error("Échec du feedback", e);
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
