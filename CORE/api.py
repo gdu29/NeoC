@@ -20,7 +20,6 @@ try:
     except ImportError:
         from equity_constraint import equity_eval
 except (ImportError, AttributeError):
-    # Fallback si equity_eval n'est pas définie dans equity_constraint.py
     def equity_eval(user_input: str, response_text: str):
         return {
             "traceability": "Pass-through (Local Node)",
@@ -43,9 +42,13 @@ if not os.path.exists(STATIC_DIR):
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Initialisation des composants du noyau
+# Initialisation des composants sans argument incompatible
 memory_bridge = NeoCBridge()
-orchestrator = NeoCOrchestrator(memory_bridge=memory_bridge)
+orchestrator = NeoCOrchestrator()
+
+# Injection si l'attribut existe sur la classe
+if hasattr(orchestrator, "memory_bridge"):
+    orchestrator.memory_bridge = memory_bridge
 
 # Modèles de données Pydantic
 class ChatPayload(BaseModel):
@@ -70,12 +73,23 @@ async def chat_endpoint(payload: ChatPayload):
         raise HTTPException(status_code=400, detail="Le message ne peut pas être vide.")
 
     try:
-        # Traitement via l'orchestrateur (interrogation LLM local + enrichissement mémoire)
-        response_data = await orchestrator.process_input(user_text)
+        # Prise en compte asynchrone / synchrone de process_input
+        if hasattr(orchestrator, "process_input"):
+            import asyncio
+            if asyncio.iscoroutinefunction(orchestrator.process_input):
+                response_data = await orchestrator.process_input(user_text)
+            else:
+                response_data = orchestrator.process_input(user_text)
+        else:
+            response_data = {"text": "Orchestrateur prêt", "node_id": "node_default"}
         
-        # Formatage de la réponse
-        raw_response = response_data.get("text", "Pas de réponse générée.")
-        node_id = response_data.get("node_id", "node_default")
+        # Extraction sécurisée des données
+        if isinstance(response_data, dict):
+            raw_response = response_data.get("text", str(response_data))
+            node_id = response_data.get("node_id", "node_default")
+        else:
+            raw_response = str(response_data)
+            node_id = "node_default"
         
         # Traçabilité et vérification d'équité
         equity_meta = equity_eval(user_text, raw_response)
@@ -95,7 +109,6 @@ async def feedback_endpoint(payload: FeedbackPayload):
         raise HTTPException(status_code=400, detail="La valeur de feedback doit être 1 ou -1.")
 
     try:
-        # Mise à jour de la mémoire via la mémoire de travail de NeoCBridge
         memory_bridge.wm.apply_plasticity(delta=payload.value)
         return {
             "status": "success",
@@ -107,4 +120,4 @@ async def feedback_endpoint(payload: FeedbackPayload):
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
-    
+        
