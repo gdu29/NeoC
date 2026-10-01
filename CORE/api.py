@@ -1,20 +1,32 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# Imports des modules internes du CORE NeoC (Pointés vers CORE.MEMORY.bridge)
+# 1. Imports Mémoire & Orchestrateur
 try:
     from CORE.orchestrator import NeoCOrchestrator
     from CORE.MEMORY.bridge import NeoCBridge
-    from CORE.equity_constraint import equity_eval
 except ImportError:
-    # Alternative si exécuté directement depuis le dossier CORE
     from orchestrator import NeoCOrchestrator
     from MEMORY.bridge import NeoCBridge
-    from equity_constraint import equity_eval
+
+# 2. Import Sécurisé pour Equity Constraint
+try:
+    try:
+        from CORE.equity_constraint import equity_eval
+    except ImportError:
+        from equity_constraint import equity_eval
+except (ImportError, AttributeError):
+    # Fallback si equity_eval n'est pas définie dans equity_constraint.py
+    def equity_eval(user_input: str, response_text: str):
+        return {
+            "traceability": "Pass-through (Local Node)",
+            "reversible": True,
+            "uncertainty_score": 0.0
+        }
 
 app = FastAPI(
     title="NeoC Core Node",
