@@ -57,21 +57,29 @@ class NeoCBridge:
         self.lexicon = {}      # {word: id}
         self.rev_lexicon = {}  # {id: word}
         
-        # Tampons pour conserver la séparation des concepts entre la question et la réponse
+        # Tampons pour séparer les concepts de la question et de la réponse
         self.last_query_nodes = []
         self.last_response_nodes = []
         
         self._load_lexicon()
 
     def _load_lexicon(self):
-        """Charge le lexique en s'assurant que la structure {mot: ID} est respectée."""
+        """Charge le lexique en ignorant les entrées mal formées."""
         if os.path.exists(self.lex_file):
             try:
                 with open(self.lex_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
-                        self.lexicon = {str(k): int(v) for k, v in data.items()}
-                        self.rev_lexicon = {int(v): str(k) for k, v in data.items()}
+                        self.lexicon = {}
+                        self.rev_lexicon = {}
+                        for k, v in data.items():
+                            if isinstance(v, int):
+                                self.lexicon[str(k)] = v
+                                self.rev_lexicon[v] = str(k)
+                            elif isinstance(v, str) and v.isdigit():
+                                node_id = int(v)
+                                self.lexicon[str(k)] = node_id
+                                self.rev_lexicon[node_id] = str(k)
             except Exception as e:
                 print(f"[Alerte Bridge] Échec du chargement du lexique : {e}")
 
@@ -109,10 +117,7 @@ class NeoCBridge:
         return node_ids
 
     def process_query(self, query: str) -> str:
-        """
-        Gère la requête utilisateur, extrait les nœuds d'entrée et
-        construit le contexte de résonance.
-        """
+        """Gère la requête utilisateur et extrait les nœuds d'entrée."""
         self.last_query_nodes = self.parse_input(query)
         
         connected_concepts = []
@@ -128,14 +133,11 @@ class NeoCBridge:
         return ""
 
     def register_response(self, response_text: str):
-        """Enregistre les concepts clés de la réponse générée par l'IA."""
+        """Enregistre les concepts clés de la réponse générée."""
         self.last_response_nodes = self.parse_input(response_text)
 
     def apply_plasticity(self, delta: float):
-        """
-        Applique la plasticité STDP entre les concepts de la requête
-        et ceux de la réponse avec affichage détaillé dans le terminal.
-        """
+        """Applique la plasticité STDP et affiche les liaisons créées dans le terminal."""
         if not self.last_query_nodes or not self.last_response_nodes:
             print("[STDP] Pas de nœuds à associer (tampons vides).")
             return
@@ -153,4 +155,4 @@ class NeoCBridge:
             delta=delta
         )
         print("---------------------------------------\n")
-        
+            
