@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Protocol : NeoC
+Module   : CORE/api.py
+Role     : API FastAPI pour le nœud NeoC (Routeur, Mémoire Graph & Feedback STDP)
+"""
+
 import os
 import uvicorn
 from fastapi import FastAPI, HTTPException
@@ -68,13 +75,16 @@ async def chat_endpoint(payload: ChatPayload):
         raise HTTPException(status_code=400, detail="Le message ne peut pas être vide.")
 
     try:
-        # Appel du vrai routeur cognitif (execute_protocol)
+        # Exécution du routeur cognitif
         result = orchestrator.execute_protocol(user_text)
         
         if result.get("status") == "error":
             raw_response = f"Erreur Ollama / LLM : {result.get('error')}"
         else:
             raw_response = result.get("response", "Pas de réponse générée.")
+            # Isolement et enregistrement des concepts clés de la réponse pour le feedback STDP
+            if orchestrator.bridge:
+                orchestrator.bridge.register_response(raw_response)
 
         node_id = "node_default"
         equity_meta = equity_eval(user_text, raw_response)
