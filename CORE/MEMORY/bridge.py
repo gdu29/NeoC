@@ -25,26 +25,26 @@ FRENCH_STOP_WORDS = {
     "celui", "celle", "ceux", "celles", "qui", "que", "quoi", "dont", "où", "lequel",
     "laquelle", "lesquels", "lesquelles", "quelqu", "quelque", "quelques",
     
-    # Verbes auxiliaires et modaux courants (et conjugations)
+    # Verbes auxiliaires et modaux courants (et conjugaisons)
     "être", "est", "sont", "été", "étant", "suis", "es", "sommes", "êtes", "était",
     "étaient", "avoir", "ai", "as", "a", "avons", "avez", "ont", "eu", "ayant",
-    "avoir", "faire", "fait", "fais", "faisons", "faites", "font", "dire", "dit",
+    "faire", "fait", "fais", "faisons", "faites", "font", "dire", "dit",
     "dis", "disons", "dites", "disent", "pouvoir", "peux", "peut", "pouvons",
     "pouvez", "peuvent", "vouloir", "veux", "veut", "voulons", "voulez", "veulent",
     "devoir", "dois", "doit", "devons", "devez", "doivent", "aller", "vais", "vas",
     "va", "allons", "allez", "vont", "parler", "parle", "parles", "parlons", "parlez",
     
     # Prépositions & Conjonctions
-    "à", "avec", "par", "pour", "en", "vers", "avec", "sans", "sous", "sur", "dans",
+    "à", "avec", "par", "pour", "en", "vers", "sans", "sous", "sur", "dans",
     "chez", "pendant", "durant", "selon", "malgré", "outre", "entre", "contre",
     "après", "avant", "depuis", "dès", "devant", "derrière", "jusqu", "jusque",
-    "et", "ou", "où", "mais", "donc", "or", "ni", "car", "si", "comme", "quand",
+    "et", "ou", "mais", "donc", "or", "ni", "car", "si", "comme", "quand",
     "lorsque", "puisque", "quoique",
     
     # Adverbes & Mots outils / Remplissage
     "pas", "ne", "plus", "moins", "tres", "très", "bien", "aussi", "encore", "toujours",
     "jamais", "trop", "peu", "beaucoup", "assez", "ici", "là", "oui", "non", "souvent",
-    "parfois", "alors", "ainsi", "comment", "pourquoi", "quand", "quel", "quelle",
+    "parfois", "alors", "ainsi", "comment", "pourquoi", "quel", "quelle",
     "quels", "quelles", "sujet", "complexe", "chose", "merci", "salut", "bonjour"
 }
 
@@ -54,7 +54,7 @@ class NeoCBridge:
         self.db_file = db_file
         self.lex_file = lex_file
         self.graph = NeoCGraph()
-        self.lexicon = {}  # {word: id}
+        self.lexicon = {}      # {word: id}
         self.rev_lexicon = {}  # {id: word}
         
         # Tampons pour conserver la séparation des concepts entre la question et la réponse
@@ -64,15 +64,19 @@ class NeoCBridge:
         self._load_lexicon()
 
     def _load_lexicon(self):
+        """Charge le lexique en s'assurant que la structure {mot: ID} est respectée."""
         if os.path.exists(self.lex_file):
             try:
                 with open(self.lex_file, "r", encoding="utf-8") as f:
-                    self.lexicon = json.load(f)
-                    self.rev_lexicon = {v: k for k, v in self.lexicon.items()}
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        self.lexicon = {str(k): int(v) for k, v in data.items()}
+                        self.rev_lexicon = {int(v): str(k) for k, v in data.items()}
             except Exception as e:
                 print(f"[Alerte Bridge] Échec du chargement du lexique : {e}")
 
     def _save_lexicon(self):
+        """Sauvegarde le dictionnaire {mot: ID} au format JSON."""
         try:
             with open(self.lex_file, "w", encoding="utf-8") as f:
                 json.dump(self.lexicon, f, ensure_ascii=False, indent=4)
@@ -80,7 +84,7 @@ class NeoCBridge:
             print(f"[Alerte Bridge] Échec de sauvegarde du lexique : {e}")
 
     def clean_tokens(self, text: str) -> list:
-        """Découpe le texte, retire la ponctuation, applique le filtrage des stop-words."""
+        """Découpe le texte, retire la ponctuation et filtre les stop-words."""
         tokens = re.findall(r'\b\w+\b', text.lower())
         filtered = [
             t for t in tokens 
@@ -106,12 +110,11 @@ class NeoCBridge:
 
     def process_query(self, query: str) -> str:
         """
-        Gère la requête de l'utilisateur, extrait les nœuds d'entrée et
+        Gère la requête utilisateur, extrait les nœuds d'entrée et
         construit le contexte de résonance.
         """
         self.last_query_nodes = self.parse_input(query)
         
-        # Recherche de connexions fortes existantes dans le graphe
         connected_concepts = []
         for src in self.last_query_nodes:
             for tgt, weight in self.graph.adj.get(src, {}).items():
@@ -131,16 +134,23 @@ class NeoCBridge:
     def apply_plasticity(self, delta: float):
         """
         Applique la plasticité STDP entre les concepts de la requête
-        et ceux de la réponse.
+        et ceux de la réponse avec affichage détaillé dans le terminal.
         """
         if not self.last_query_nodes or not self.last_response_nodes:
-            # Sécurisation si la réponse n'a pas été isolée : lien interne à la requête
-            self.graph.apply_plasticity_between_sets(self.last_query_nodes, self.last_query_nodes, delta)
+            print("[STDP] Pas de nœuds à associer (tampons vides).")
             return
+
+        print(f"\n--- APPLICATION STDP (Delta: {delta}) ---")
+        for src in self.last_query_nodes:
+            src_word = self.rev_lexicon.get(src, str(src))
+            for tgt in self.last_response_nodes:
+                tgt_word = self.rev_lexicon.get(tgt, str(tgt))
+                print(f"[STDP Feedback] Ancrage : '{src_word}' (ID {src}) -> '{tgt_word}' (ID {tgt})")
 
         self.graph.apply_plasticity_between_sets(
             source_nodes=self.last_query_nodes,
             target_nodes=self.last_response_nodes,
             delta=delta
-)
-            
+        )
+        print("---------------------------------------\n")
+        
