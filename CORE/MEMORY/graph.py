@@ -1,42 +1,84 @@
-# -*- coding: utf-8 -*-
 """
-Protocol : NeoC
-Module   : MEMORY/graph.py
-Role     : Structure de données du graphe orienté et pondéré avec plasticité STDP
+NeoC - Memory Graph Module (CORE/MEMORY/graph.py)
+Gère le graphe de mémoire dynamique pour contextualiser les interactions et relier les concepts.
 """
 
-class NeoCGraph:
-    def __init__(self):
-        self.adj = {}  # {source_id: {target_id: weight}}
+import networkx as nx
+import os
+import json
+import logging
+from typing import List, Dict, Any
 
-    def add_node(self, node_id: int):
-        if node_id not in self.adj:
-            self.adj[node_id] = {}
+logger = logging.getLogger("NeoCMemoryGraph")
 
-    def set_edge_weight(self, source: int, target: int, weight: float):
-        self.add_node(source)
-        self.add_node(target)
-        # Bornage du poids entre 0.0 et 1.0
-        clamped_weight = max(0.0, min(1.0, weight))
-        self.adj[source][target] = clamped_weight
+class MemoryGraph:
+    def __init__(self, storage_path: str = "CORE/MEMORY/memory_db.json"):
+        self.storage_path = storage_path
+        self.graph = nx.DiGraph()
+        self.load_memory()
 
-    def get_edge_weight(self, source: int, target: int) -> float:
-        return self.adj.get(source, {}).get(target, 0.0)
+    def load_memory(self):
+        """Charge le graphe de mémoire depuis le stockage persistant s'il existe."""
+        if os.path.exists(self.storage_path):
+            try:
+                with open(self.storage_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.graph = nx.node_link_graph(data)
+                logger.info(f"🧠 Graphe de mémoire chargé avec succès ({self.graph.number_of_nodes()} nœuds).")
+            except Exception as e:
+                logger.error(f"Erreur lors du chargement de la mémoire : {e}")
+                self.graph = nx.DiGraph()
+        else:
+            logger.info("🧠 Aucun stockage mémoriel trouvé. Initialisation d'un nouveau graphe vierge.")
 
-    def apply_plasticity_between_sets(self, source_nodes: list, target_nodes: list, delta: float, learning_rate: float = 0.1):
+    def save_memory(self):
+        """Sauvegarde l'état actuel du graphe de mémoire sur le disque."""
+        try:
+            os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
+            data = nx.node_link_data(self.graph)
+            with open(self.storage_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info("💾 Graphe de mémoire sauvegardé.")
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde de la mémoire : {e}")
+
+    def add_interaction(self, user_id: str, input_text: str, output_text: str):
+        """Ajoute une interaction (prompt/réponse) et crée des liens contextuels."""
+        interaction_id = f"interaction_{self.graph.number_of_nodes() + 1}"
+        
+        # Ajout du nœud principal pour l'interaction
+        self.graph.add_node(
+            interaction_id, 
+            type="interaction", 
+            user_id=user_id, 
+            input=input_text, 
+            output=output_text
+        )
+
+        # Lien basique avec l'utilisateur ou la session
+        if not self.graph.has_node(user_id):
+            self.graph.add_node(user_id, type="entity")
+        
+        self.graph.add_edge(user_id, interaction_id, relation="emits")
+        
+        # Sauvegarde automatique après modification
+        self.save_memory()
+
+    def retrieve_context(self, prompt: str, limit: int = 3) -> List[Dict[str, Any]]:
         """
-        Applique un renforcement (+1) ou une inhibition (-1) entre tous les nœuds
-        de la requête (source_nodes) et ceux de la réponse (target_nodes).
+        Récupère les éléments contextuels pertinents dans le graphe 
+        en fonction du prompt (recherche par mots-clés ou historique récent).
         """
-        if not source_nodes or not target_nodes:
-            return
-
-        for src in source_nodes:
-            for tgt in target_nodes:
-                if src == tgt:
-                    continue
-                current = self.get_edge_weight(src, tgt)
-                new_weight = current + (delta * learning_rate)
-                self.set_edge_weight(src, tgt, new_weight)
-                print(f"[STDP Graph] Lien mis à jour : Nœud {src} -> Nœud {tgt} | Poids = {self.get_edge_weight(src, tgt):.2f}")
-                
+        context = []
+        nodes = [n for n, d in self.graph.nodes(data=True) if d.get("type") == "interaction"]
+        recent_nodes = nodes[-limit:] if nodes else []
+        
+        for node_id in recent_nodes:
+            node_data = self.graph.nodes[node_id]
+            context.append({
+                "id": node_id,
+                "input": node_data.get("input"),
+                "output": node_data.get("output")
+            })
+            
+        return context
