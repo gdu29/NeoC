@@ -15,7 +15,7 @@ class TrustRegistry:
     def update_trust(self, entity_id: str, delta: float):
         """Met à jour le score de confiance d'une entité suite à une interaction."""
         current = self.trust_scores.get(entity_id, 1.0)
-        new_score = max(0.0, min(2.0, current + delta))  borné entre 0 et 2
+        new_score = max(0.0, min(2.0, current + delta))
         self.trust_scores[entity_id] = new_score
         return new_score
 
