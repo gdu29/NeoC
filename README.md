@@ -1,7 +1,7 @@
 # 🌐 NeoC — Decentralized Knowledge & Autonomous Intelligence Network
 
 > **A Open-Source, Decentralized & Ethically Bound AI Framework**  
-> *L'Équité des Consciences • Le Bien Commun Cognitif • L'Open Source Absolute*
+> *L'Équité des Consciences • Le Bien Commun Cognitif • L'Open Source Absolu*
 
 ---
 
@@ -35,3 +35,41 @@ La vision, l'éthique et la politique de développement de NeoC sont formalisée
 
 NeoC s'articule autour de trois briques fondamentales :
 
+┌─────────────────────────────────────────┐
+│       Gouvernance & Interface          │
+│       (Souveraineté & Ethique)         │
+└────────────────────┬────────────────────┘
+│
+┌─────────────────────────────┴─────────────────────────────┐
+▼                                                           ▼
+┌───────────────────────────┐                       ┌───────────────────────────┐
+│     Orchestration LLM     │                       │     Graphe de Mémoire     │
+│   Ollama / Gemma / Local  │◄─────────────────────►│     Contextuel & P2P      │
+│   Multi-Agents Symbiotiques│                       │    (Plasticité & IPFS)    │
+└───────────────────────────┘                       └───────────────────────────┘
+
+* **Orchestration Multi-Agents :** Routage dynamique des requêtes vers des LLMs locaux ou distants selon les besoins de puissance et de sobriété énergétique.
+* **Graphe de Mémoire Plastique :** Maintien d'un contexte distribué, résilient et inaltérable pour assurer la continuité des apprentissages.
+* **Protocoles Décentralisés :** Partage des connaissances et des modules via des réseaux peer-to-peer (IPFS).
+
+---
+
+## 🚀 Prise en Main Rapide
+
+### Prérequis
+* Python 3.10+
+* [Ollama](https://ollama.com/) avec le modèle `gemma` (ou équivalent) installé localement
+* Un environnement terminal (Ubuntu Linux, Termux, etc.)
+
+### Installation
+```bash
+# Cloner le dépôt
+git clone [https://github.com/gdu29/NeoC.git](https://github.com/gdu29/NeoC.git)
+cd NeoC
+
+# Configurer l'environnement virtuel
+python3 -m venv venv
+source venv/bin/activate
+
+# Installer les dépendances
+pip install -r requirements.txt
