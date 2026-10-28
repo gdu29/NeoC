@@ -1,68 +1,51 @@
-"""
-NeoC - Orchestrator Module
-Coordonne le flux d'exécution, la mémoire dynamique via le graphe,
-les contraintes décisionnelles d'équité et les moteurs économiques en arrière-plan.
-"""
-
-import logging
-from typing import Dict, Any
-from CORE.MEMORY.graph import MemoryGraph
-from CORE.equity_constraint import equity_enforced, EquityViolationError
-
-# Import des moteurs économiques et de confiance
-from CORE.funding import FundingEngine
-from CORE.demurrage import DemurrageEngine
-from CORE.trust import TrustRegistry
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("NeoCOrchestrator")
+import json
+import requests
 
 class NeoCOrchestrator:
-    def __init__(self):
-        logger.info("🧠 Initialisation de l'orchestrateur NeoC, du graphe et des moteurs économiques...")
-        
-        # 1. Cœur mémoriel et éthique
-        self.memory = MemoryGraph()
-        
-        # 2. Moteurs économiques et de confiance (arrière-plan)
-        self.funding = FundingEngine()
-        self.demurrage = DemurrageEngine()
-        self.trust = TrustRegistry()
-
-    @equity_enforced
-    async def handle_request(self, prompt: str, user_id: str) -> Dict[str, Any]:
-        """
-        Gère le cycle de vie d'une requête entrante sous contrôle éthique et économique :
-        1. Validation d'équité via @equity_enforced.
-        2. Contextualisation via le graphe de mémoire.
-        3. Traitement / Génération de la réponse.
-        4. Mise à jour de la confiance distributive et des métriques en arrière-plan.
-        5. Persistance de l'interaction dans le graphe de mémoire.
-        """
-        logger.info(f"Traitement de la requête pour [{user_id}] sous le protocole NeoC...")
-
-        # --- Étape 1 : Récupération du contexte mémoriel pertinent ---
-        context_nodes = self.memory.retrieve_context(prompt, limit=3)
-
-        # --- Étape 2 : Traitement de la logique / Génération de la réponse ---
-        response_text = (
-            f"Réponse souveraine pour : '{prompt}'. "
-            f"Contexte mémoriel : {len(context_nodes)} nœud(s)."
+    """
+    Orchestrateur local pour les agents autonomes NeoC.
+    Communique avec une instance Ollama locale (ex: Gemma).
+    """
+    def __init__(self, model_name="gemma", base_url="http://localhost:11434"):
+        self.model_name = model_name
+        self.base_url = base_url
+        self.system_prompt = (
+            "Tu es NeoC, un agent autonome décentralisé et éthique, "
+            "guidé par l'Équité des Consciences, le partage des savoirs et le service du bien commun. "
+            "Tes réponses privilégient la transparence, la sobriété et l'accessibilité universelle."
         )
 
-        # --- Étape 3 : Actions des moteurs économiques en arrière-plan ---
-        # Exemple : Mise à jour positive de la confiance distributive de l'entité suite à l'échange
-        current_trust = self.trust.update_trust(entity_id=user_id, delta=0.05)
-        
-        # Exemple : Application d'une simulation de démurrage ou de traçabilité (optionnel/informatif)
-        logger.info(f"⚖️ [Économie] Confiance actualisée pour {user_id} : {current_trust:.2f}")
-
-        # --- Étape 4 : Enregistrement de l'interaction dans le graphe de mémoire ---
-        self.memory.add_interaction(user_id=user_id, input_text=prompt, output_text=response_text)
-
-        return {
-            "response": response_text,
-            "context_used": context_nodes,
-            "user_trust_score": current_trust
+    def generate_response(self, prompt, context=None):
+        """
+        Envoie une requête au modèle local et récupère la réponse ainsi que le contexte de mémoire.
+        """
+        url = f"{self.base_url}/api/generate"
+        payload = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "system": self.system_prompt,
+            "stream": False
         }
-        
+        if context:
+            payload["context"] = context
+
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", ""), data.get("context", None)
+        except requests.exceptions.ConnectionError:
+            return "Erreur : Impossible de joindre le serveur Ollama en local. Assure-toi qu'Ollama est lancé.", None
+        except Exception as e:
+            return f"Erreur inattendue : {str(e)}", None
+
+if __name__ == "__main__":
+    print("=== Initialisation de l'orchestrateur NeoC ===")
+    orchestrator = NeoCOrchestrator(model_name="gemma")
+    
+    test_prompt = "Présente brièvement ta mission au sein du réseau NeoC."
+    print(f"Prompt : {test_prompt}\n")
+    
+    response, _ = orchestrator.generate_response(test_prompt)
+    print(f"Réponse de l'agent :\n{response}")
+    
