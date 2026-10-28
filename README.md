@@ -35,18 +35,12 @@ La vision, l'éthique et la politique de développement de NeoC sont formalisée
 
 NeoC s'articule autour de trois briques fondamentales :
 
-    ┌─────────────────────────────────────────┐
-    │       Gouvernance & Interface          │
-    │       (Souveraineté & Ethique)         │
-    └────────────────────┬────────────────────┘
-                         │
-    ┌────────────────────┴────────────────────┐
-    ▼                                         ▼
-┌───────────────────────────┐       ┌───────────────────────────┐
-│     Orchestration LLM     │       │     Graphe de Mémoire     │
-│   Ollama / Gemma / Local  │◄─────►│     Contextuel & P2P      │
-│   Multi-Agents Symbiotiques│      │    (Plasticité & IPFS)    │
-└───────────────────────────┘       └───────────────────────────┘
+```mermaid
+graph TD
+    A[Gouvernance & Interface<br/>Souveraineté & Éthique] --> B[Orchestration LLM<br/>Ollama / Gemma / Multi-Agents]
+    A --> C[Graphe de Mémoire<br/>Contextuel & P2P / IPFS]
+    B <--> C
+```
 
 * **Orchestration Multi-Agents :** Routage dynamique des requêtes vers des LLMs locaux ou distants selon les besoins de puissance et de sobriété énergétique.
 * **Graphe de Mémoire Plastique :** Maintien d'un contexte distribué, résilient et inaltérable pour assurer la continuité des apprentissages.
@@ -62,17 +56,18 @@ NeoC s'articule autour de trois briques fondamentales :
 * Un environnement terminal (Ubuntu Linux, Termux, etc.)
 
 ### Installation
+```bash
+# Cloner le dépôt
+git clone [https://github.com/gdu29/NeoC.git](https://github.com/gdu29/NeoC.git)
+cd NeoC
 
-    # Cloner le dépôt
-    git clone [https://github.gdu29/NeoC.git](https://github.gdu29/NeoC.git)
-    cd NeoC
+# Configurer l'environnement virtuel
+python3 -m venv venv
+source venv/bin/activate
 
-    # Configurer l'environnement virtuel
-    python3 -m venv venv
-    source venv/bin/activate
-
-    # Installer les dépendances
-    pip install -r requirements.txt
+# Installer les dépendances
+pip install -r requirements.txt
+```
 
 ---
 
