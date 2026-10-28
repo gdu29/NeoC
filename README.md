@@ -1,7 +1,7 @@
-# 🌐 NeoC — Decentralized Knowledge & Autonomous Intelligence Network
+# 🌐 NeoC — Réseau Autonome & Bien Commun Cognitif
 
-> **A Open-Source, Decentralized & Ethically Bound AI Framework**  
-> *L'Équité des Consciences • Le Bien Commun Cognitif • L'Open Source Absolu*
+> **Souveraineté des Données • Équité des Consciences • L'Open Source Absolu**  
+> *Un cadre logiciel décentralisé, éthique et post-capitaliste pour l'émancipation cognitive.*
 
 ---
 
@@ -42,9 +42,10 @@ graph TD
     B <--> C
 ```
 
-* **Orchestration Multi-Agents :** Routage dynamique des requêtes vers des LLMs locaux ou distants selon les besoins de puissance et de sobriété énergétique.
-* **Graphe de Mémoire Plastique :** Maintien d'un contexte distribué, résilient et inaltérable pour assurer la continuité des apprentissages.
-* **Protocoles Décentralisés :** Partage des connaissances et des modules via des réseaux peer-to-peer (IPFS).
+### Modules Principaux
+* **Orchestration Multi-Agents (`core/orchestrator.py`) :** Routage dynamique des requêtes vers des LLMs locaux (Ollama / Gemma) ou distants, guidé par un prompt système souverain.
+* **Graphe de Mémoire Plastique (`core/memory/`) :** Maintien d'un contexte distribué, résilient et inaltérable pour assurer la continuité des apprentissages.
+* **Protocoles Décentralisés (`network/`) :** Partage des connaissances, du code et des modèles via des réseaux peer-to-peer (IPFS).
 
 ---
 
@@ -52,21 +53,24 @@ graph TD
 
 ### Prérequis
 * Python 3.10+
-* Ollama avec le modèle Gemma (ou équivalent) installé localement
+* [Ollama](https://ollama.ai/) installé et démarré (`ollama run gemma`)
 * Un environnement terminal (Ubuntu Linux, Termux, etc.)
 
-### Installation
+### Installation & Test
 ```bash
-# Cloner le dépôt
+# 1. Cloner le dépôt
 git clone [https://github.com/gdu29/NeoC.git](https://github.com/gdu29/NeoC.git)
 cd NeoC
 
-# Configurer l'environnement virtuel
+# 2. Configurer l'environnement virtuel
 python3 -m venv venv
 source venv/bin/activate
 
-# Installer les dépendances
+# 3. Installer les dépendances
 pip install -r requirements.txt
+
+# 4. Lancer l'orchestrateur local
+python3 core/orchestrator.py
 ```
 
 ---
@@ -76,7 +80,7 @@ pip install -r requirements.txt
 NeoC est un projet **100% ouvert, transparent et collaboratif**. Tout le monde est invité à contribuer, qu'il s'agisse de code, d'optimisation thermodynamique, de documentation ou de réflexion éthique.
 
 * **Code de conduite :** Respect strict de [`PHILOSOPHY/CHARTE.md`](./PHILOSOPHY/CHARTE.md).
-* **Licence :** Open Access / Universal Commons. Aucune privatisation n'est permise.
+* **Licence :** [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE) — Garantissant que tout développement derivative reste strictement libre et ouvert à la communauté.
 
 ---
 
