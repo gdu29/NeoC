@@ -35,18 +35,18 @@ La vision, l'éthique et la politique de développement de NeoC sont formalisée
 
 NeoC s'articule autour de trois briques fondamentales :
 
-┌─────────────────────────────────────────┐
-│       Gouvernance & Interface          │
-│       (Souveraineté & Ethique)         │
-└────────────────────┬────────────────────┘
-│
-┌─────────────────────────────┴─────────────────────────────┐
-▼                                                           ▼
-┌───────────────────────────┐                       ┌───────────────────────────┐
-│     Orchestration LLM     │                       │     Graphe de Mémoire     │
-│   Ollama / Gemma / Local  │◄─────────────────────►│     Contextuel & P2P      │
-│   Multi-Agents Symbiotiques│                       │    (Plasticité & IPFS)    │
-└───────────────────────────┘                       └───────────────────────────┘
+    ┌─────────────────────────────────────────┐
+    │       Gouvernance & Interface          │
+    │       (Souveraineté & Ethique)         │
+    └────────────────────┬────────────────────┘
+                         │
+    ┌────────────────────┴────────────────────┐
+    ▼                                         ▼
+┌───────────────────────────┐       ┌───────────────────────────┐
+│     Orchestration LLM     │       │     Graphe de Mémoire     │
+│   Ollama / Gemma / Local  │◄─────►│     Contextuel & P2P      │
+│   Multi-Agents Symbiotiques│      │    (Plasticité & IPFS)    │
+└───────────────────────────┘       └───────────────────────────┘
 
 * **Orchestration Multi-Agents :** Routage dynamique des requêtes vers des LLMs locaux ou distants selon les besoins de puissance et de sobriété énergétique.
 * **Graphe de Mémoire Plastique :** Maintien d'un contexte distribué, résilient et inaltérable pour assurer la continuité des apprentissages.
@@ -58,18 +58,34 @@ NeoC s'articule autour de trois briques fondamentales :
 
 ### Prérequis
 * Python 3.10+
-* [Ollama](https://ollama.com/) avec le modèle `gemma` (ou équivalent) installé localement
+* Ollama avec le modèle Gemma (ou équivalent) installé localement
 * Un environnement terminal (Ubuntu Linux, Termux, etc.)
 
 ### Installation
-```bash
-# Cloner le dépôt
-git clone [https://github.com/gdu29/NeoC.git](https://github.com/gdu29/NeoC.git)
-cd NeoC
 
-# Configurer l'environnement virtuel
-python3 -m venv venv
-source venv/bin/activate
+    # Cloner le dépôt
+    git clone [https://github.gdu29/NeoC.git](https://github.gdu29/NeoC.git)
+    cd NeoC
 
-# Installer les dépendances
-pip install -r requirements.txt
+    # Configurer l'environnement virtuel
+    python3 -m venv venv
+    source venv/bin/activate
+
+    # Installer les dépendances
+    pip install -r requirements.txt
+
+---
+
+## 🤝 Contribution & Open Source
+
+NeoC est un projet **100% ouvert, transparent et collaboratif**. Tout le monde est invité à contribuer, qu'il s'agisse de code, d'optimisation thermodynamique, de documentation ou de réflexion éthique.
+
+* **Code de conduite :** Respect strict de [`PHILOSOPHY/CHARTE.md`](./PHILOSOPHY/CHARTE.md).
+* **Licence :** Open Access / Universal Commons. Aucune privatisation n'est permise.
+
+---
+
+<p align="center">
+  <i>« L'information à l'échelle fondamentale appartient à la globalité. »</i><br>
+  ⚓🌐♻️
+</p>
